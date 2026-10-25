@@ -18,6 +18,9 @@ commit 167a682), fine-tuned, architecture unchanged.
 | `dnaf_adapter.py` | 2+ | Feeds our data to the unchanged DNAFormer; strict checkpoint loading |
 | `stage2_check.py` | 2 | Compatibility check, sanity inference, GPU memory test |
 | `Stage2_compatibility.ipynb` | 2 | Colab notebook (self-contained, T4 GPU) |
+| `stage3_baselines.py` | 3 | Majority vote, marker-sync majority vote, pretrained DNAFormer; payload-only metrics |
+| `Stage3_baselines.ipynb` | 3 | Colab notebook (self-contained, T4 GPU) |
+| `build_stage3_notebook.py` | 3 | Rebuilds the Stage 3 notebook from the .py files |
 | `DNA_Storage_FYP_Overview.pdf` | – | 3-page printable overview |
 
 Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
@@ -34,5 +37,9 @@ Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
   - Pretrained sanity check (50 clusters/level, exact recovery): 1% 100%, 3% 100%, 5% ~92%, 8% ~3%.
     Markers give no gain before fine-tuning (expected). Original loader at 8%: NED 0.358 vs 0.072 with adapter.
   - Fine-tune step on T4 (full model, Adam, fp32): batch 16 = 4.7 GB, 0.83 s/step; batch 32 = 8.0 GB, 1.64 s/step.
-- Stage 3 (baselines on all 1,000 test clusters/level): next.
+- Stage 3 (baselines on all 1,000 test clusters/level): built, ready to run in Colab.
+  - Majority votes tested locally on the full test sets (identical data): plain vote is 0-4% exact
+    even at 1% deletion (one deletion shifts the rest of the read); marker-sync vote gets 53% at 1%,
+    3% at 3%, 0% at 5-8%, and finds 97-100% of markers.
+  - Pretrained DNAFormer part not run yet (no PyTorch locally); it reuses the Stage 2 code path.
 - Stages 4–6: fine-tuning, final graphs, analysis.
