@@ -25,5 +25,14 @@ Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
 ## Status
 
 - Stage 1 (dataset): done, all checks passed in Colab.
-- Stage 2 (compatibility check): notebook ready, not yet run.
-- Stages 3–6: baselines, fine-tuning, final graphs, analysis.
+- Stage 2 (compatibility check): done, all checks passed in Colab (T4, Python 3.13, torch 2.11).
+  - All 274 checkpoint tensors load strictly. The checkpoint names two fusion vectors
+    `pred_fusion` / `pred_fusion_flip`; the code calls them `pred_fusion_left` / `_right`.
+    The repo's strict=False load skips them; we map them (difference is tiny: mean NED 0.0182 vs 0.0188).
+  - Repo data loader is unusable here: crashes on Python >= 3.11, drops deletion-heavy reads,
+    swaps 41% of 8%-deletion test clusters, zeroes length-132 reads. We use `dnaf_adapter.py`.
+  - Pretrained sanity check (50 clusters/level, exact recovery): 1% 100%, 3% 100%, 5% ~92%, 8% ~3%.
+    Markers give no gain before fine-tuning (expected). Original loader at 8%: NED 0.358 vs 0.072 with adapter.
+  - Fine-tune step on T4 (full model, Adam, fp32): batch 16 = 4.7 GB, 0.83 s/step; batch 32 = 8.0 GB, 1.64 s/step.
+- Stage 3 (baselines on all 1,000 test clusters/level): next.
+- Stages 4–6: fine-tuning, final graphs, analysis.
