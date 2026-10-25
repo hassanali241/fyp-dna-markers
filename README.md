@@ -37,7 +37,8 @@ Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
   - Pretrained sanity check (50 clusters/level, exact recovery): 1% 100%, 3% 100%, 5% ~92%, 8% ~3%.
     Markers give no gain before fine-tuning (expected). Original loader at 8%: NED 0.358 vs 0.072 with adapter.
   - Fine-tune step on T4 (full model, Adam, fp32): batch 16 = 4.7 GB, 0.83 s/step; batch 32 = 8.0 GB, 1.64 s/step.
-- Stage 3 (baselines on all 1,000 test clusters/level): built, ready to run in Colab.
+- Stage 3 (baselines on all 1,000 test clusters/level): done in Colab, see `results/stage3/summary.md`.
+  - Pretrained DNAFormer exact recovery 100 / ~100 / 88-91 / ~8% at 1/3/5/8%; no difference between arms yet.
   - Majority votes tested locally on the full test sets (identical data): plain vote is 0-4% exact
     even at 1% deletion (one deletion shifts the rest of the read); marker-sync vote gets 53% at 1%,
     3% at 3%, 0% at 5-8%, and finds 97-100% of markers.
