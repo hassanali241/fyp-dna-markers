@@ -160,7 +160,11 @@ def main():
         check(True, "all %d weight tensors loaded strictly (0 missing, 0 unexpected, 0 wrong shape) [%s]"
               % (rep["n_tensors"], rep["loader"]))
         print("   checkpoint keys: %s, epoch: %s" % (rep["checkpoint_top_keys"], rep["checkpoint_epoch"]))
-        SUMMARY["checkpoint"] = {k: rep[k] for k in ("loader", "n_tensors", "checkpoint_epoch")}
+        for old, new in rep["renamed"].items():
+            print("   renamed %s -> %s, shape %s, min/mean/max %s"
+                  % (old, new, rep["renamed_shapes"][new], rep["renamed_stats"][new]))
+        SUMMARY["checkpoint"] = {k: rep[k] for k in ("loader", "n_tensors", "checkpoint_epoch", "renamed",
+                                                     "renamed_stats")}
     except RuntimeError as e:
         check(False, str(e)[:500])
         finish(args)
@@ -192,24 +196,39 @@ def main():
     print("   (only a sanity check; the proper baseline evaluation is Stage 3)")
     print("   arm / read policy            level  exact   norm. edit dist")
     runs = [("marker_free", "original"), ("marker_free", "relaxed"),
-            ("marker_periodic", "relaxed"), ("marker_endblock", "relaxed")]
+            ("marker_periodic", "relaxed"), ("marker_endblock", "relaxed"),
+            ("marker_free", "relaxed+fusion=1")]   # last: repo behaviour (renamed weights skipped)
     SUMMARY["sanity"] = {}
+    saved_fusion = None
     for arm, pol in runs:
+        if pol.endswith("fusion=1") and saved_fusion is None:
+            saved_fusion = (model.fusion.pred_fusion_left.detach().clone(),
+                            model.fusion.pred_fusion_right.detach().clone())
+            A.reset_fusion_weights(model)
+        pol_read = pol.split("+")[0]
         for t, d in zip(tests, levels):
             cl = load_subset(args.data, arm, t)[:args.n_sanity]
             neds, exacts = [], []
             for i in range(0, len(cl), 25):
                 chunk = cl[i:i + 25]
-                x, _ = A.make_batch(chunk, pol, device)
+                x, _ = A.make_batch(chunk, pol_read, device)
                 with torch.inference_mode():
                     preds = A.decode(model(x)["pred"])
                 for p, c in zip(preds, chunk):
                     ned, ex = score(arm, p, c)
                     neds.append(ned)
                     exacts.append(ex)
-            print("   %-16s %-9s     %4.0f%%  %5.1f%%  %.4f" % (arm, pol, d * 100, 100 * np.mean(exacts), np.mean(neds)))
+            print("   %-16s %-16s %4.0f%%  %5.1f%%  %.4f" % (arm, pol, d * 100, 100 * np.mean(exacts), np.mean(neds)))
             SUMMARY["sanity"]["%s_%s_%s" % (arm, pol, t)] = {"exact": round(float(np.mean(exacts)), 3),
                                                             "ned": round(float(np.mean(neds)), 4)}
+    if saved_fusion is not None:
+        with torch.no_grad():
+            model.fusion.pred_fusion_left.copy_(saved_fusion[0])
+            model.fusion.pred_fusion_right.copy_(saved_fusion[1])
+    mapped = np.mean([SUMMARY["sanity"]["marker_free_relaxed_%s" % t]["ned"] for t in tests])
+    ones = np.mean([SUMMARY["sanity"]["marker_free_relaxed+fusion=1_%s" % t]["ned"] for t in tests])
+    print("   mean norm. edit dist over levels: renamed weights loaded %.4f vs fusion=1 (repo) %.4f" % (mapped, ones))
+    SUMMARY["fusion_choice"] = "renamed" if mapped <= ones else "ones"
     mf1 = SUMMARY["sanity"]["marker_free_relaxed_test_del01"]["ned"]
     check(mf1 < 0.05, "pretrained model is clearly working at 1%% deletion (norm. edit dist %.4f < 0.05)" % mf1)
 

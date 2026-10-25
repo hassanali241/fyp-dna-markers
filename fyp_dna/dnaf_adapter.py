@@ -24,6 +24,20 @@ INPUT_LEN = 132        # repo: noisy_copies_length = 140 + 4 - 12
 MAX_READS = 16         # repo: max_number_per_cluster
 ORIG_MAX_DEVIATION = 4  # repo: corrupt_max_deviation
 
+# Old checkpoint name -> current model name (found in Stage 2: same shape, renamed in code)
+CHECKPOINT_RENAMES = {
+    "fusion.pred_fusion": "fusion.pred_fusion_left",
+    "fusion.pred_fusion_flip": "fusion.pred_fusion_right",
+}
+
+
+def reset_fusion_weights(model):
+    """Set both fusion vectors to 1.0, i.e. what the repo's own loader ends up using."""
+    import torch
+    with torch.no_grad():
+        model.fusion.pred_fusion_left.fill_(1.0)
+        model.fusion.pred_fusion_right.fill_(1.0)
+
 
 class DNAFormerConfig:
     """Same values as DNN/inference.py in the repo."""
@@ -73,6 +87,14 @@ def load_checkpoint(model, path, device="cpu"):
         loader = "weights_only=False"
     state = ckpt.get("model_state_dict", ckpt) if isinstance(ckpt, dict) else ckpt
     state = {k[7:] if k.startswith("module.") else k: v for k, v in state.items()}
+    # The released checkpoint uses older names for the two fusion weight vectors.
+    # The repo's strict=False loading silently skips them (they stay at 1.0).
+    # We map them explicitly; the shape check below still guards the mapping.
+    renamed = {}
+    for old, new in CHECKPOINT_RENAMES.items():
+        if old in state and new not in state:
+            state[new] = state.pop(old)
+            renamed[old] = new
     model_keys = set(model.state_dict().keys())
     ckpt_keys = set(state.keys())
     missing = sorted(model_keys - ckpt_keys)
@@ -84,7 +106,10 @@ def load_checkpoint(model, path, device="cpu"):
         "checkpoint_top_keys": sorted(ckpt.keys()) if isinstance(ckpt, dict) else [],
         "checkpoint_epoch": ckpt.get("epoch") if isinstance(ckpt, dict) else None,
         "n_tensors": len(ckpt_keys), "missing": missing, "unexpected": unexpected,
-        "shape_mismatch": shape_bad,
+        "shape_mismatch": shape_bad, "renamed": renamed,
+        "renamed_shapes": {new: tuple(state[new].shape) for new in renamed.values()},
+        "renamed_stats": {new: [round(float(state[new].min()), 4), round(float(state[new].mean()), 4),
+                                round(float(state[new].max()), 4)] for new in renamed.values()},
     }
     if missing or unexpected or shape_bad:
         raise RuntimeError("Checkpoint does not match the model: %s" % report)
