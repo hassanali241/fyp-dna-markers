@@ -29,8 +29,8 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 | 1. Dataset | DONE | Hassan | All checks passed in Colab; identical to local run |
 | 2. Compatibility check | DONE | Hassan | All checks passed (T4, Python 3.13, torch 2.11). See README for numbers |
 | 3. Baselines | DONE | Hassan's teammate | `results/stage3/summary.md`; CSVs in Drive `results/stage3` | Majority vote + pretrained DNAFormer, metrics CSVs |
-| 4. Fine-tuning | RUNNING (marker_free, marker_periodic DONE; marker_endblock running) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
-| 5. Final eval + graphs | Not written | | Recovery rate and edit distance vs deletion rate |
+| 4. Fine-tuning | DONE (all 3 arms) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
+| 5. Final eval + graphs | NEXT | | Recovery rate and edit distance vs deletion rate |
 | 6. Analysis | Not started | | |
 
 ## Key facts so far
@@ -58,6 +58,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 
 ## Log (newest first)
 - 2026-10-25: Teammate added to GitHub and Drive. PROGRESS.md created.
+- Stage 4 marker_endblock DONE: test exact 100/100/95.7/41.0%. Summary: results/stage4/summary.md.
 - Stage 4 marker_periodic DONE: test exact 100/100/96.1/52.4%. See results/stage4/marker_periodic.md.
 - Stage 4 marker_free DONE: test exact 100/99.8/94.1/38.8% (pretrained 100/99.8/88.5/7.6%). See results/stage4/marker_free.md.
 - Stage 4 notebook built and tested locally; merged to main.
