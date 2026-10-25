@@ -21,6 +21,9 @@ commit 167a682), fine-tuned, architecture unchanged.
 | `stage3_baselines.py` | 3 | Majority vote, marker-sync majority vote, pretrained DNAFormer; payload-only metrics |
 | `Stage3_baselines.ipynb` | 3 | Colab notebook (self-contained, T4 GPU) |
 | `build_stage3_notebook.py` | 3 | Rebuilds the Stage 3 notebook from the .py files |
+| `stage4_finetune.py` | 4 | Fine-tunes DNAFormer on one arm (resumable), then scores the best checkpoint on the test sets |
+| `Stage4_finetune.ipynb` | 4 | Colab notebook (self-contained, T4 GPU); set `ARM` in Cell 1 |
+| `build_stage4_notebook.py` | 4 | Rebuilds the Stage 4 notebook from the .py files |
 | `DNA_Storage_FYP_Overview.pdf` | – | 3-page printable overview |
 
 Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
@@ -43,4 +46,9 @@ Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
     even at 1% deletion (one deletion shifts the rest of the read); marker-sync vote gets 53% at 1%,
     3% at 3%, 0% at 5-8%, and finds 97-100% of markers.
   - Pretrained DNAFormer part not run yet (no PyTorch locally); it reuses the Stage 2 code path.
-- Stages 4–6: fine-tuning, final graphs, analysis.
+- Stage 4 (fine-tuning): built and tested locally on CPU with a small model (training, freeze/unfreeze,
+  learning, exact stop-and-resume, test scoring). One notebook; each team member sets `ARM` to one version.
+  - Settings (same for all arms): DNAFormer loss (CE + 0.25 consistency), Adam, batch 16, fp16 mixed precision,
+    epochs 1-2 transformer frozen at lr 1e-5, epochs 3-10 whole model, warm-up then cosine 3e-6 -> 1e-7,
+    best epoch by payload-only validation NED, test sets scored once at the end.
+- Stages 5–6: final graphs, analysis.

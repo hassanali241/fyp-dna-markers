@@ -278,10 +278,10 @@ def write_csv(path, rows, fields):
 
 
 def print_table(results):
-    print("\n%-10s %-16s %5s  %-22s %-8s %-8s %-6s %s" % ("method", "arm", "del", "exact recovery [95% CI]",
+    print("\n%-12s %-16s %5s  %-22s %-8s %-8s %-6s %s" % ("method", "arm", "del", "exact recovery [95% CI]",
                                                       "NED", "base acc", "files", "ms/cl"))
     for r in results:
-        print("%-10s %-16s %4.0f%%  %5.1f%% [%5.1f, %5.1f]    %.4f   %.4f   %2d/%-3d %.1f" % (
+        print("%-12s %-16s %4.0f%%  %5.1f%% [%5.1f, %5.1f]    %.4f   %.4f   %2d/%-3d %.1f" % (
             r["method"], r["arm"], 100 * r["deletion_rate"], 100 * r["exact_recovery"],
             100 * r["exact_ci_low"], 100 * r["exact_ci_high"], r["ned_mean"], r["base_acc_mean"],
             r["files_recovered"], r["n_files"], r["ms_per_cluster"]))
