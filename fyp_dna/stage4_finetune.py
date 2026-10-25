@@ -171,9 +171,10 @@ def rng_state(torch):
 def set_rng_state(torch, st):
     random.setstate(st["python"])
     np.random.set_state(st["numpy"])
-    torch.set_rng_state(st["torch"])
+    # RNG states must be CPU byte tensors; torch.load(map_location='cuda') moves them to the GPU
+    torch.set_rng_state(st["torch"].cpu())
     if st["cuda"] is not None and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(st["cuda"])
+        torch.cuda.set_rng_state_all([s.cpu() for s in st["cuda"]])
 
 
 # ---------------------------------------------------------------------------
