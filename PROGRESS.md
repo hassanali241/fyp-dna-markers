@@ -29,7 +29,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 | 1. Dataset | DONE | Hassan | All checks passed in Colab; identical to local run |
 | 2. Compatibility check | DONE | Hassan | All checks passed (T4, Python 3.13, torch 2.11). See README for numbers |
 | 3. Baselines | DONE | Hassan's teammate | `results/stage3/summary.md`; CSVs in Drive `results/stage3` | Majority vote + pretrained DNAFormer, metrics CSVs |
-| 4. Fine-tuning | READY TO RUN | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
+| 4. Fine-tuning | RUNNING (marker_free DONE) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
 | 5. Final eval + graphs | Not written | | Recovery rate and edit distance vs deletion rate |
 | 6. Analysis | Not started | | |
 
@@ -58,6 +58,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 
 ## Log (newest first)
 - 2026-10-25: Teammate added to GitHub and Drive. PROGRESS.md created.
+- Stage 4 marker_free DONE: test exact 100/99.8/94.1/38.8% (pretrained 100/99.8/88.5/7.6%). See results/stage4/marker_free.md.
 - Stage 4 notebook built and tested locally; merged to main.
 - Stage 3 completed in Colab: DNAFormer 100/~100/88-91/~8% exact at 1/3/5/8%, arms equal before fine-tuning.
 - Stage 3 notebook built; majority votes tested locally on full test sets.
