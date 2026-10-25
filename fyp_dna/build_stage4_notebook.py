@@ -48,7 +48,7 @@ print('This notebook will fine-tune:', ARM)
     md("### Cell 2: mount Drive, set paths, check data, checkpoint and GPU"),
     code("""
 from google.colab import drive
-drive.mount('/content/drive')
+drive.mount('/content/drive', force_remount=True)   # fresh view of Drive (sees new uploads)
 
 import os
 PROJECT  = '/content/drive/MyDrive/fyp_dna'
@@ -59,9 +59,18 @@ CKPT     = f'{PROJECT}/checkpoints/DNAFormer_siamese.pth'
 CKPT_DIR = f'{PROJECT}/checkpoints/stage4'
 OUT_DIR  = f'{PROJECT}/results/stage4'
 os.makedirs(CODE, exist_ok=True); os.makedirs(CKPT_DIR, exist_ok=True); os.makedirs(OUT_DIR, exist_ok=True)
-print('Stage 1 data on Drive:      ', os.path.isfile(f'{DATA}/config.json'))
-print('Pretrained checkpoint:      ', os.path.isfile(CKPT))
+need = {f'{DATA}/{ARM}/{s}/metadata.json': f'Stage 1 data {ARM}/{s}' for s in
+        ['train', 'val', 'test_del01', 'test_del03', 'test_del05', 'test_del08']}
+need[CKPT] = 'pretrained model DNAFormer_siamese.pth'
+missing = [what + '  ->  ' + path for path, what in need.items() if not os.path.isfile(path)]
+for path, what in need.items():
+    print('found' if os.path.isfile(path) else 'MISSING', ' ', what)
 print('Earlier progress to resume: ', os.path.isfile(f'{CKPT_DIR}/{ARM}/last.pt'))
+if missing:
+    raise RuntimeError('STOP: these files are missing from Google Drive:\\n  ' + '\\n  '.join(missing) +
+                     '\\nPut them back in MyDrive/fyp_dna (data/stage1_pilot and checkpoints), '
+                     'then Runtime > Disconnect and delete runtime, and Run all again.')
+print('All files found. OK to continue.')
 !nvidia-smi --query-gpu=name,memory.total --format=csv
 !df -h /content/drive | tail -1
 """),

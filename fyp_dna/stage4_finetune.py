@@ -78,7 +78,11 @@ def log(msg):
 # Data
 # ---------------------------------------------------------------------------
 def load_split(data, arm, subset, limit=None):
-    with open(os.path.join(data, arm, subset, "metadata.json")) as f:
+    path = os.path.join(data, arm, subset, "metadata.json")
+    if not os.path.isfile(path):
+        sys.exit("ERROR: dataset file not found: %s\nThe Stage 1 data is missing from Google Drive "
+                 "(MyDrive/fyp_dna/data/stage1_pilot). Put it back, remount Drive, and run again." % path)
+    with open(path) as f:
         clusters = json.load(f)
     return clusters[:limit] if limit else clusters
 
@@ -221,6 +225,9 @@ def main():
     log("train clusters %d, val clusters %d, %d steps/epoch x %d epochs"
         % (len(train), len(val), spe, cfg["epochs"]))
 
+    if not os.path.isfile(args.ckpt):
+        sys.exit("ERROR: pretrained model not found: %s\nPut DNAFormer_siamese.pth back in "
+                 "MyDrive/fyp_dna/checkpoints (or rerun the Stage 2 notebook), then run again." % args.ckpt)
     model, _ = A.build_model(args.repo, device)
     rep = A.load_checkpoint(model, args.ckpt, device)
     log("pretrained checkpoint loaded strictly (%d tensors)" % rep["n_tensors"])
