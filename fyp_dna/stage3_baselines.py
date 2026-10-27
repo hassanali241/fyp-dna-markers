@@ -75,13 +75,18 @@ def mv_plain(reads):
     return vote(reads, G.STRAND_LEN)
 
 
-def find_marker(read, expected_start):
-    """Best approximate match of the marker near expected_start.
+def max_edits(marker):
+    """Edits allowed in a marker match: 2 for the 8-base marker (as in Stage 3), L // 4 for
+    shorter ones, so a 2- or 3-base marker must match exactly (anything else matches noise)."""
+    return MARKER_MAX_ED if len(marker) == len(G.MARKER) else len(marker) // 4
+
+
+def find_marker(read, expected_start, m=G.MARKER):
+    """Best approximate match of marker m near expected_start.
 
     Semi-global alignment: the marker must match completely, the read may start and end
     anywhere inside the search window. Returns (start, end, edits) or None if the best
-    match has more than MARKER_MAX_ED edits."""
-    m = G.MARKER
+    match has more than max_edits(m) edits."""
     lo = max(0, expected_start - MARKER_SEARCH)
     hi = min(len(read), expected_start + len(m) + MARKER_SEARCH)
     text = read[lo:hi]
@@ -117,24 +122,24 @@ def find_marker(read, expected_start):
                 cur_start[j] = cur_start[j - 1]
         prev, prev_start = cur, cur_start
     best_j = min(range(1, n + 1), key=lambda j: (prev[j], abs(lo + j - len(m) - expected_start)))
-    if prev[best_j] > MARKER_MAX_ED:
+    if prev[best_j] > max_edits(m):
         return None
     return lo + prev_start[best_j], lo + best_j, prev[best_j]
 
 
-def split_at_markers(read):
+def split_at_markers(read, marker=G.MARKER, seg=G.MARKER_INTERVAL):
     """Cut one periodic-arm read into its 4 payload segments.
 
     Markers are searched one after the other; the expected position of the next marker is
-    24 bases after the end of the previous one, so a deletion earlier in the read does not
+    `seg` bases after the end of the previous one, so a deletion earlier in the read does not
     throw off the later searches. If a marker is not found, we assume it sits where expected.
     Returns (segments, n_markers_found)."""
     segments, found, pos = [], 0, 0
     for _ in range(G.N_MARKERS):
-        expected = pos + G.MARKER_INTERVAL
-        hit = find_marker(read, expected)
+        expected = pos + seg
+        hit = find_marker(read, expected, marker)
         if hit is None:
-            start, end = min(expected, len(read)), min(expected + len(G.MARKER), len(read))
+            start, end = min(expected, len(read)), min(expected + len(marker), len(read))
         else:
             start, end, _ = hit
             found += 1
@@ -143,10 +148,11 @@ def split_at_markers(read):
     return segments, found
 
 
-def mv_sync(reads):
-    """Marker-sync majority vote. Returns (payload96, fraction of markers found)."""
-    per_read = [split_at_markers(r) for r in reads]
-    payload = "".join(vote([segs[k] for segs, _ in per_read], G.MARKER_INTERVAL)
+def mv_sync(reads, arm="marker_periodic"):
+    """Marker-sync majority vote for any periodic arm. Returns (payload, fraction of markers found)."""
+    marker, seg = G.periodic_layout(arm)
+    per_read = [split_at_markers(r, marker, seg) for r in reads]
+    payload = "".join(vote([segs[k] for segs, _ in per_read], seg)
                       for k in range(G.N_MARKERS))
     found = sum(f for _, f in per_read) / (G.N_MARKERS * len(reads))
     return payload, found
@@ -242,7 +248,7 @@ def run_mv(method, arm, clusters):
     if method == "mv":
         preds, found = [G.remove_markers(arm, mv_plain(c["noisy_reads"])) for c in clusters], None
     else:
-        out = [mv_sync(c["noisy_reads"]) for c in clusters]
+        out = [mv_sync(c["noisy_reads"], arm) for c in clusters]
         preds, found = [p for p, _ in out], [f for _, f in out]
     return preds, found, time.time() - t0
 
@@ -295,6 +301,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=0, help="clusters per level (0 = all)")
     ap.add_argument("--no-torch", action="store_true", help="majority votes only")
+    ap.add_argument("--arms", default=",".join(G.ARMS),
+                    help="comma-separated arms (default: the 3 Stage 1 arms)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     levels = G.DELETION_LEVELS
@@ -319,9 +327,14 @@ def main():
         print("Checkpoint loaded strictly: %d tensors, renamed %s" % (rep["n_tensors"], rep["renamed"]))
         log["checkpoint"] = {k: rep[k] for k in ("loader", "n_tensors", "checkpoint_epoch", "renamed")}
 
-    runs = [("mv", arm) for arm in G.ARMS] + [("mv_sync", "marker_periodic")]
+    arms = [x.strip() for x in args.arms.split(",") if x.strip()]
+    bad = [x for x in arms if x not in G.ALL_ARMS]
+    if bad:
+        sys.exit("ERROR: unknown arm(s) %s" % bad)
+    log["arms"] = arms
+    runs = [("mv", arm) for arm in arms] + [("mv_sync", arm) for arm in arms if G.periodic_layout(arm)]
     if model is not None:
-        runs += [("dnaformer", arm) for arm in G.ARMS]
+        runs += [("dnaformer", arm) for arm in arms]
 
     all_rows, results = [], []
     for method, arm in runs:

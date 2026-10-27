@@ -186,7 +186,7 @@ def main():
     ap.add_argument("--repo", required=True)
     ap.add_argument("--data", required=True)
     ap.add_argument("--ckpt", required=True, help="pretrained DNAFormer_siamese.pth")
-    ap.add_argument("--arm", required=True, choices=G.ARMS)
+    ap.add_argument("--arm", required=True, choices=G.ALL_ARMS)
     ap.add_argument("--ckpt-dir", required=True)
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--smoke", action="store_true", help="2-minute test run")

@@ -42,6 +42,26 @@ LONG_DELETION_RATE = 0.0      # all deletions are single-base; change later if w
 
 ARMS = ["marker_free", "marker_periodic", "marker_endblock"]
 
+# Marker-length sweep (added after Stage 4): same 128-base strand and the same 32-base period
+# (one data segment + one marker, 4 times), but a shorter marker = the first L bases of MARKER.
+# The bases freed go to the payload. L = 8 is exactly marker_periodic, so it is not repeated here.
+MARKER_PERIOD = MARKER_INTERVAL + len(MARKER)       # 32
+MARKER_LENGTHS = [2, 3, 4, 5, 6, 7]
+LENGTH_ARMS = ["marker_len%d" % L for L in MARKER_LENGTHS]
+ALL_ARMS = ARMS + LENGTH_ARMS
+
+
+def periodic_layout(arm):
+    """(marker sequence, data bases per segment) for periodic arms, else None."""
+    if arm == "marker_periodic":
+        return MARKER, MARKER_INTERVAL
+    if arm.startswith("marker_len"):
+        L = int(arm[len("marker_len"):])
+        if not 1 <= L <= len(MARKER):
+            raise ValueError(arm)
+        return MARKER[:L], MARKER_PERIOD - L
+    return None
+
 # Seed ranges never overlap between splits, so the same payload cannot appear in two splits.
 SPLIT_SEED_BASE = {"train": 10_000_000, "val": 20_000_000, "test": 30_000_000}
 LEVEL_SEED_STRIDE = 1_000_000  # each deletion level gets its own block of seeds
@@ -68,6 +88,16 @@ def build_strand(arm, payload128):
     """Return (clean_strand, payload, marker_positions)."""
     if arm == "marker_free":
         return payload128, payload128, []
+    if arm.startswith("marker_len"):
+        marker, seg = periodic_layout(arm)
+        payload = payload128[: seg * N_MARKERS]            # same seed -> prefix of the marker-free payload
+        parts, positions = [], []
+        for k in range(N_MARKERS):
+            parts.append(payload[k * seg:(k + 1) * seg])
+            start = sum(len(p) for p in parts)
+            parts.append(marker)
+            positions.append([start, start + len(marker)])
+        return "".join(parts), payload, positions
     payload96 = payload128[: MARKER_INTERVAL * N_MARKERS]  # same seed -> first 96 bases shared
     if arm == "marker_periodic":
         parts, positions = [], []
@@ -89,6 +119,10 @@ def remove_markers(arm, strand):
     """Payload-only view of a 128-base strand (used by later stages for scoring)."""
     if arm == "marker_free":
         return strand
+    if arm.startswith("marker_len"):
+        marker, seg = periodic_layout(arm)
+        step = seg + len(marker)
+        return "".join(strand[k * step:k * step + seg] for k in range(N_MARKERS))
     if arm == "marker_periodic":
         step = MARKER_INTERVAL + len(MARKER)
         return "".join(strand[k * step:k * step + MARKER_INTERVAL] for k in range(N_MARKERS))
@@ -185,10 +219,12 @@ def make_cluster(ClusterGenerator, arm, c):
         "payload_seed": c["payload_seed"],
         "noise_seed": c["noise_seed"],
         "marker_present": arm != "marker_free",
-        "marker_layout": {"marker_free": "none", "marker_periodic": "periodic",
-                          "marker_endblock": "end_block"}[arm],
-        "marker_sequence": MARKER if arm != "marker_free" else "",
-        "marker_interval": MARKER_INTERVAL if arm == "marker_periodic" else None,
+        "marker_layout": "periodic" if arm.startswith("marker_len") else
+                         {"marker_free": "none", "marker_periodic": "periodic", "marker_endblock": "end_block"}[arm],
+        "marker_sequence": (periodic_layout(arm)[0] if arm.startswith("marker_len") else
+                            MARKER if arm != "marker_free" else ""),
+        "marker_interval": (periodic_layout(arm)[1] if arm.startswith("marker_len") else
+                            MARKER_INTERVAL if arm == "marker_periodic" else None),
         "marker_positions": marker_pos,
         "marker_overhead": n_marker / len(clean),
         "payload_length": len(payload),
@@ -241,7 +277,14 @@ def main():
     ap.add_argument("--repo", required=True, help="path to Deep-DNA-based-storage")
     ap.add_argument("--out", required=True, help="output folder")
     ap.add_argument("--tiny", action="store_true", help="very small smoke-test dataset")
+    ap.add_argument("--arms", default=",".join(ARMS),
+                    help="comma-separated arms (default: the 3 Stage 1 arms; marker-length sweep: %s)"
+                         % ",".join(LENGTH_ARMS))
     args = ap.parse_args()
+    arms = [a.strip() for a in args.arms.split(",") if a.strip()]
+    bad = [a for a in arms if a not in ALL_ARMS]
+    if bad:
+        sys.exit("ERROR: unknown arm(s) %s. Choose from %s" % (bad, ALL_ARMS))
 
     sizes = TINY_SIZES if args.tiny else PILOT_SIZES
     ClusterGenerator = load_simulator(args.repo)
@@ -250,7 +293,7 @@ def main():
 
     t0 = time.time()
     manifest_rows = []
-    for arm in ARMS:
+    for arm in arms:
         by_subset = {}
         for k, c in enumerate(plan):
             cl = make_cluster(ClusterGenerator, arm, c)
@@ -287,12 +330,14 @@ def main():
         "insertion_rate": INSERTION_RATE, "substitution_rate": SUBSTITUTION_RATE,
         "long_deletion_rate": LONG_DELETION_RATE, "strand_length": STRAND_LEN,
         "marker": MARKER, "marker_interval": MARKER_INTERVAL, "n_markers": N_MARKERS,
-        "n_reads": N_READS, "arms": ARMS, "split_seed_base": SPLIT_SEED_BASE,
+        "n_reads": N_READS, "arms": arms, "split_seed_base": SPLIT_SEED_BASE,
         "level_seed_stride": LEVEL_SEED_STRIDE, "noise_seed_offset": NOISE_SEED_OFFSET,
         "shuffle_seed": SHUFFLE_SEED, "simulator": "DataGenerator/cluster_generator.py",
         "simulator_repo_commit": repo_commit(args.repo),
         "python": sys.version.split()[0], "numpy": np.__version__,
     }
+    if any(a in LENGTH_ARMS for a in arms):   # only for the sweep, so Stage 1 output stays byte-identical
+        config["marker_layouts"] = {a: list(periodic_layout(a)) for a in arms if periodic_layout(a)}
     with open(os.path.join(args.out, "config.json"), "w", newline="\n") as f:
         json.dump(config, f, indent=2)
 
@@ -307,7 +352,7 @@ def main():
         json.dump(dict(sorted(checksums.items())), f, indent=1)
 
     print("\nDONE: %d clusters per arm x %d arms in %.0fs -> %s"
-          % (len(plan), len(ARMS), time.time() - t0, args.out))
+          % (len(plan), len(arms), time.time() - t0, args.out))
 
 
 if __name__ == "__main__":
