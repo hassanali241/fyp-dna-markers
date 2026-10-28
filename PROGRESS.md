@@ -30,6 +30,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 | 2. Compatibility check | DONE | Hassan | All checks passed (T4, Python 3.13, torch 2.11). See README for numbers |
 | 3. Baselines | DONE | Hassan's teammate | `results/stage3/summary.md`; CSVs in Drive `results/stage3` | Majority vote + pretrained DNAFormer, metrics CSVs |
 | 4. Fine-tuning | DONE (all 3 arms) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
+| 1b. Marker-length datasets | READY TO RUN | Hassan | `Stage1b_marker_lengths.ipynb` -> Drive `data/stage1_markers`; lengths 4,5,6,7,12; tested locally, all checks passed |
 | 5. Final eval + graphs | NEXT | | Recovery rate and edit distance vs deletion rate |
 | 6. Analysis | Not started | | |
 
@@ -57,6 +58,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 4. When done: save outputs/CSVs/graphs in `results/stageN/`, update this file, push.
 
 ## Log (newest first)
+- 2026-10-28: Stage 1b built: marker lengths 4 (CAGT), 5 (TCATG), 6 (CTGTCA), 7 (CTGATCA), 12 (ACGTCAGTGCAT); 4 markers, one per 32-base block, same payloads/seeds/error positions as Stage 1. Original 3 arms rebuild byte-identical. Marker sequences chosen by design rules (no AA, no ACAC-type repeats, GC 40-60%, no self-overlap): occurrence ranking was re-tested on 2 new random datasets and does not repeat (rank agreement ~0), so only length matters.
 - 2026-10-25: Teammate added to GitHub and Drive. PROGRESS.md created.
 - Stage 4 marker_endblock DONE: test exact 100/100/95.7/41.0%. Summary: results/stage4/summary.md.
 - Stage 4 marker_periodic DONE: test exact 100/100/96.1/52.4%. See results/stage4/marker_periodic.md.

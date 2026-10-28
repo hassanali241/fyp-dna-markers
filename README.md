@@ -24,6 +24,9 @@ commit 167a682), fine-tuned, architecture unchanged.
 | `stage4_finetune.py` | 4 | Fine-tunes DNAFormer on one arm (resumable), then scores the best checkpoint on the test sets |
 | `Stage4_finetune.ipynb` | 4 | Colab notebook (self-contained, T4 GPU); set `ARM` in Cell 1 |
 | `build_stage4_notebook.py` | 4 | Rebuilds the Stage 4 notebook from the .py files |
+| `Stage1b_marker_lengths.ipynb` | 1b | Marker-length datasets (4,5,6,7,12) into Drive `data/stage1_markers` |
+| `stage1b_validate.py` | 1b | Checks new arms against Stage 1 (same payloads, seeds, error positions) |
+| `build_stage1b_notebook.py` | 1b | Rebuilds the Stage 1b notebook |
 | `DNA_Storage_FYP_Overview.pdf` | – | 3-page printable overview |
 
 Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
