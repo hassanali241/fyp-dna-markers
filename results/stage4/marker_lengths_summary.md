@@ -11,7 +11,7 @@ Break-even at 8% = recovery needed to match marker-free (49,664 data bases).
 | marker_len06 | CTGTCA | 104 | 18.8% | 95.3% | 49.6% [46.5, 52.7] | 0.0172 | 51,584 | 47.8% |
 | marker_len07 | CTGATCA | 100 | 21.9% | pending | | | | 49.7% |
 | marker_periodic (8) | ACGTCAGT | 96 | 25.0% | 96.1% | 52.4% [49.3, 55.5] | 0.0148 | 50,304 | 51.7% |
-| marker_len12 | ACGTCAGTGCAT | 80 | 37.5% | pending | | | | 62.1% |
+| marker_len12 | ACGTCAGTGCAT | 80 | 37.5% | 97.1% | 62.3% [59.3, 65.3] | 0.0119 | 49,840 | 62.1% |
 | marker_endblock (8, control) | ACGTCAGT | 96 | 25.0% | 95.7% | 41.0% [38.0, 44.1] | 0.0241 | 39,360 | 51.7% |
 
 Winner rule (agreed before results): most data recovered at 8% deletion; ties go to the shorter marker.

@@ -60,6 +60,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 
 ## Log (newest first)
 - 2026-10-28: Stage 1b run in Colab: all checks passed (same payloads, seeds, error positions as Stage 1; 92 files match checksums).
+- 2026-10-28: Stage 4b marker_len12 DONE: test exact 100/99.8/97.1/62.3%.
 - 2026-10-28: Stage 4b marker_len06 DONE: test exact 100/99.9/95.3/49.6% (resumed once; resume worked).
 - 2026-10-28: Stage 4b marker_len05 DONE: test exact 100/99.5/95.6/45.7%.
 - 2026-10-28: Stage 4b marker_len04 DONE: test exact 100/99.8/95.4/44.6%. See results/stage4/marker_lengths_summary.md.
