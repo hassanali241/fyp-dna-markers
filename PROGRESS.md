@@ -60,6 +60,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 
 ## Log (newest first)
 - 2026-10-28: Stage 1b run in Colab: all checks passed (same payloads, seeds, error positions as Stage 1; 92 files match checksums).
+- 2026-10-28: Stage 4b marker_len04 DONE: test exact 100/99.8/95.4/44.6%. See results/stage4/marker_lengths_summary.md.
 - 2026-10-28: Stage 1b built: marker lengths 4 (CAGT), 5 (TCATG), 6 (CTGTCA), 7 (CTGATCA), 12 (ACGTCAGTGCAT); 4 markers, one per 32-base block, same payloads/seeds/error positions as Stage 1. Original 3 arms rebuild byte-identical. Marker sequences chosen by design rules (no AA, no ACAC-type repeats, GC 40-60%, no self-overlap): occurrence ranking was re-tested on 2 new random datasets and does not repeat (rank agreement ~0), so only length matters.
 - 2026-10-25: Teammate added to GitHub and Drive. PROGRESS.md created.
 - Stage 4 marker_endblock DONE: test exact 100/100/95.7/41.0%. Summary: results/stage4/summary.md.
