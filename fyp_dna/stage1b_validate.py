@@ -70,9 +70,15 @@ def main():
         m = G.arm_marker(arm)
         L, d = len(m), G.data_per_block(arm)
         nm, blk, n_data = G.arm_n_markers(arm), G.arm_block(arm), G.arm_n_data(arm)
-        want_pos = [[k * blk + d, k * blk + blk] for k in range(nm)]
-        print("\n2. %s  marker %s (length %d): %d x (%d data + %d marker) = %d data bases"
-              % (arm, m, L, nm, d, L, n_data))
+        if G.ARM_SPECS[arm]["layout"] == "middle":
+            h = n_data // 2
+            want_pos = [[h, h + L]]
+            print("\n2. %s  marker %s (length %d): %d data + marker + %d data = %d data bases"
+                  % (arm, m, L, h, n_data - h, n_data))
+        else:
+            want_pos = [[k * blk + d, k * blk + blk] for k in range(nm)]
+            print("\n2. %s  marker %s (length %d): %d x (%d data + %d marker) = %d data bases"
+                  % (arm, m, L, nm, d, L, n_data))
         total, chance = 0, 0
         ok = collections.Counter()
         for sub in subsets:

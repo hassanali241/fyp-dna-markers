@@ -60,9 +60,11 @@ ARM_SPECS = {
     # Spacing study: same 6-letter marker, 2 or 8 markers per strand (4 = marker_len06)
     "marker_len06_n2": {"layout": "periodic",  "marker": "CTGTCA", "n_markers": 2},   # 2 x (58 + 6)
     "marker_len06_n8": {"layout": "periodic",  "marker": "CTGTCA", "n_markers": 8},   # 8 x (10 + 6)
+    "marker_len06_n1": {"layout": "middle",    "marker": "CTGTCA", "n_markers": 1},   # 61 + 6 + 61
 }
 LENGTH_ARMS = ["marker_len04", "marker_len05", "marker_len06", "marker_len07", "marker_len12"]
 SPACING_ARMS = ["marker_len06_n2", "marker_len06_n8"]
+MIDDLE_ARMS = ["marker_len06_n1"]   # one marker in the middle of the strand
 ALL_ARMS = list(ARM_SPECS)
 
 # Seed ranges never overlap between splits, so the same payload cannot appear in two splits.
@@ -126,6 +128,9 @@ def build_strand(arm, payload128):
             parts.append(m)
             positions.append([start, start + len(m)])
         return "".join(parts), payload, positions
+    if spec["layout"] == "middle":
+        h = n_data // 2
+        return payload[:h] + m + payload[h:], payload, [[h, h + len(m)]]
     if spec["layout"] == "end_block":
         start = len(payload)
         positions = [[start + k * len(m), start + (k + 1) * len(m)] for k in range(nm)]
@@ -142,6 +147,9 @@ def remove_markers(arm, strand):
     if spec["layout"] == "periodic":
         d, b = data_per_block(arm), arm_block(arm)
         return "".join(strand[k * b:k * b + d] for k in range(arm_n_markers(arm)))
+    if spec["layout"] == "middle":
+        h = n_data // 2
+        return strand[:h] + strand[h + len(spec["marker"]):]
     if spec["layout"] == "end_block":
         return strand[:n_data]
     raise ValueError(arm)
@@ -292,9 +300,9 @@ def main():
     ap.add_argument("--tiny", action="store_true", help="very small smoke-test dataset")
     ap.add_argument("--arms", default=",".join(ARMS),
                     help="comma-separated arms to build (default: the 3 Stage 1 arms); "
-                         "'lengths' = the marker-length arms %s; 'spacing' = %s" % (LENGTH_ARMS, SPACING_ARMS))
+                         "'lengths' = the marker-length arms %s; 'spacing' = %s; 'middle' = %s" % (LENGTH_ARMS, SPACING_ARMS, MIDDLE_ARMS))
     args = ap.parse_args()
-    groups = {"lengths": LENGTH_ARMS, "spacing": SPACING_ARMS}
+    groups = {"lengths": LENGTH_ARMS, "spacing": SPACING_ARMS, "middle": MIDDLE_ARMS}
     arms = groups.get(args.arms) or [a.strip() for a in args.arms.split(",")]
     for a in arms:
         if a not in ARM_SPECS:

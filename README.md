@@ -29,6 +29,8 @@ commit 167a682), fine-tuned, architecture unchanged.
 | `build_stage1b_notebook.py` | 1b | Rebuilds the Stage 1b notebook |
 | `Stage1c_marker_spacing.ipynb` | 1c | Marker-spacing datasets (CTGTCA, 2 and 8 markers) into Drive `data/stage1_spacing` |
 | `build_stage1c_notebook.py` | 1c | Rebuilds the Stage 1c notebook |
+| `Stage1d_middle_marker.ipynb` | 1d | One CTGTCA marker in the middle (61 + 6 + 61) into Drive `data/stage1_middle` |
+| `build_stage1d_notebook.py` | 1d | Rebuilds the Stage 1d notebook |
 | `DNA_Storage_FYP_Overview.pdf` | – | 3-page printable overview |
 
 Data and checkpoint live in Google Drive (`MyDrive/fyp_dna`), not in this repo.
