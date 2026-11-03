@@ -26,7 +26,7 @@ cells = [
 Each team member trains a different version with **exactly the same settings**.
 
 1. **Use a GPU:** Runtime > Change runtime type > **T4 GPU**.
-2. In **Cell 1**, set `ARM` to your version. **Change nothing else.**
+2. In **Cell 1**, set `ARM` to your version (and `SEED`, for repeat runs). **Change nothing else.**
 3. Runtime > **Run all**. Allow Google Drive access.
 
 | Person | ARM |
@@ -48,8 +48,11 @@ ARM = 'marker_periodic'   # one of: 'marker_free', 'marker_periodic', 'marker_en
 
 ARMS_STAGE1  = ('marker_free', 'marker_periodic', 'marker_endblock')
 ARMS_LENGTHS = ('marker_len04', 'marker_len05', 'marker_len06', 'marker_len07', 'marker_len12')
+SEED = 1   # 1 = original run. Use 2 for the repeat runs (saved as <ARM>_seed2, nothing is overwritten)
+
 assert ARM in ARMS_STAGE1 + ARMS_LENGTHS, 'ARM is misspelled'
-print('This notebook will fine-tune:', ARM)
+RUN = ARM if SEED == 1 else f'{ARM}_seed{SEED}'
+print('This notebook will fine-tune:', ARM, '| seed', SEED, '| saved as', RUN)
 """),
     md("### Cell 2: mount Drive, set paths, check data, checkpoint and GPU"),
     code("""
@@ -71,7 +74,7 @@ need[CKPT] = 'pretrained model DNAFormer_siamese.pth'
 missing = [what + '  ->  ' + path for path, what in need.items() if not os.path.isfile(path)]
 for path, what in need.items():
     print('found' if os.path.isfile(path) else 'MISSING', ' ', what)
-print('Earlier progress to resume: ', os.path.isfile(f'{CKPT_DIR}/{ARM}/last.pt'))
+print('Earlier progress to resume: ', os.path.isfile(f'{CKPT_DIR}/{RUN}/last.pt'))
 if missing:
     raise RuntimeError('STOP: these files are missing from Google Drive:\\n  ' + '\\n  '.join(missing) +
                      '\\nPut them back in MyDrive/fyp_dna (data/stage1_pilot or data/stage1_markers, and checkpoints), '
@@ -104,8 +107,8 @@ If it fails, **stop here** and paste the error to Claude.
 """),
     code("""
 !rm -rf /content/stage4_smoke
-!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --ckpt-dir /content/stage4_smoke/ckpt --out-dir /content/stage4_smoke/out --smoke --stop-after 2 2>&1 | grep -v Warning | tail -4
-!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --ckpt-dir /content/stage4_smoke/ckpt --out-dir /content/stage4_smoke/out --smoke 2>&1 | grep -v Warning | tail -12
+!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --seed {SEED} --ckpt-dir /content/stage4_smoke/ckpt --out-dir /content/stage4_smoke/out --smoke --stop-after 2 2>&1 | grep -v Warning | tail -4
+!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --seed {SEED} --ckpt-dir /content/stage4_smoke/ckpt --out-dir /content/stage4_smoke/out --smoke 2>&1 | grep -v Warning | tail -12
 """),
     md("""
 ### Cell 10: full fine-tuning (about 1.5 hours) + test scores
@@ -114,7 +117,7 @@ Progress prints every ~2 minutes. **When it finishes, paste everything from
 The full log is also saved to `MyDrive/fyp_dna/checkpoints/stage4/<ARM>/train_log.txt`.
 """),
     code("""
-!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --ckpt-dir {CKPT_DIR} --out-dir {OUT_DIR} 2>&1 | grep -v Warning
+!cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --seed {SEED} --ckpt-dir {CKPT_DIR} --out-dir {OUT_DIR} 2>&1 | grep -v Warning
 """),
     md("""
 ---
@@ -124,7 +127,7 @@ The full log is also saved to `MyDrive/fyp_dna/checkpoints/stage4/<ARM>/train_lo
 - `checkpoints/stage4/<ARM>/history.json` and `train_log.txt`: validation scores per epoch
 - `results/stage4/<ARM>/results.csv` and `predictions.csv`: test scores, same format as Stage 3
 
-**Settings are locked.** If you change anything except `ARM`, the run refuses to resume and the
+**Settings are locked.** If you change anything except `ARM` and `SEED`, the run refuses to resume and the
 comparison between versions is no longer fair.
 """),
 ]

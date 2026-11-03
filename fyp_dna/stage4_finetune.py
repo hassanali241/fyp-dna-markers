@@ -25,6 +25,7 @@ Outputs
 Usage
   python stage4_finetune.py --repo R --data D --ckpt PRETRAINED --arm marker_periodic \
       --ckpt-dir CKDIR --out-dir OUTDIR
+  add --seed 2 for a repeat run with a different random start (saved as <arm>_seed2)
   add --smoke for a 2-minute test (tiny epochs, nothing written to Drive folders you pass)
 """
 import argparse
@@ -192,18 +193,22 @@ def main():
     ap.add_argument("--smoke", action="store_true", help="2-minute test run")
     ap.add_argument("--stop-after", type=int, default=0, help="stop after this epoch (to test resume)")
     ap.add_argument("--allow-cpu", action="store_true", help="for code testing only")
+    ap.add_argument("--seed", type=int, default=1,
+                    help="training seed (1 = original run; other seeds save to <arm>_seed<N>)")
     args = ap.parse_args()
 
     import torch
     cfg = dict(SETTINGS)
+    cfg["seed"] = args.seed
     if args.smoke:
         cfg.update(SMOKE)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device != "cuda" and not args.allow_cpu:
         sys.exit("ERROR: no GPU. Runtime > Change runtime type > T4 GPU, then run again.")
 
-    ck_dir = os.path.join(args.ckpt_dir, args.arm)
-    out_dir = os.path.join(args.out_dir, args.arm)
+    run_name = args.arm if args.seed == 1 else "%s_seed%d" % (args.arm, args.seed)
+    ck_dir = os.path.join(args.ckpt_dir, run_name)
+    out_dir = os.path.join(args.out_dir, run_name)
     os.makedirs(ck_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     LOG_FILE = os.path.join(ck_dir, "train_log.txt")
