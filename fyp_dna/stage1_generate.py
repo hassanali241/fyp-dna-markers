@@ -42,11 +42,12 @@ LONG_DELETION_RATE = 0.0      # all deletions are single-base; change later if w
 
 ARMS = ["marker_free", "marker_periodic", "marker_endblock"]   # Stage 1 default
 
-# Every arm: how the 128-base strand is built. "periodic" = 4 blocks of 32 bases,
-# each block = (32 - L) data bases followed by the L-base marker. Payloads are always
+# Every arm: how the 128-base strand is built. "periodic" = n blocks of 128/n bases
+# (n = 4 unless the arm sets "n_markers"), each block = (128/n - L) data bases followed by
+# the L-base marker. Payloads are always
 # the FIRST data bases of the same 128-base random payload, and the noise seed is
 # shared, so all arms are paired (same data, same error positions).
-BLOCK = STRAND_LEN // N_MARKERS   # 32
+BLOCK = STRAND_LEN // N_MARKERS   # 32 (default block; use arm_block(arm) per arm)
 ARM_SPECS = {
     "marker_free":     {"layout": "none",      "marker": ""},
     "marker_periodic": {"layout": "periodic",  "marker": "ACGTCAGT"},      # length 8 (Stage 4)
@@ -56,8 +57,12 @@ ARM_SPECS = {
     "marker_len06":    {"layout": "periodic",  "marker": "CTGTCA"},
     "marker_len07":    {"layout": "periodic",  "marker": "CTGATCA"},
     "marker_len12":    {"layout": "periodic",  "marker": "ACGTCAGTGCAT"},
+    # Spacing study: same 6-letter marker, 2 or 8 markers per strand (4 = marker_len06)
+    "marker_len06_n2": {"layout": "periodic",  "marker": "CTGTCA", "n_markers": 2},   # 2 x (58 + 6)
+    "marker_len06_n8": {"layout": "periodic",  "marker": "CTGTCA", "n_markers": 8},   # 8 x (10 + 6)
 }
 LENGTH_ARMS = ["marker_len04", "marker_len05", "marker_len06", "marker_len07", "marker_len12"]
+SPACING_ARMS = ["marker_len06_n2", "marker_len06_n8"]
 ALL_ARMS = list(ARM_SPECS)
 
 # Seed ranges never overlap between splits, so the same payload cannot appear in two splits.
@@ -86,8 +91,22 @@ def arm_marker(arm):
     return ARM_SPECS[arm]["marker"]
 
 
+def arm_n_markers(arm):
+    return ARM_SPECS[arm].get("n_markers", N_MARKERS) if ARM_SPECS[arm]["layout"] != "none" else 0
+
+
+def arm_block(arm):
+    n = arm_n_markers(arm) or N_MARKERS
+    assert STRAND_LEN % n == 0
+    return STRAND_LEN // n
+
+
+def arm_n_data(arm):
+    return STRAND_LEN - arm_n_markers(arm) * len(arm_marker(arm))
+
+
 def data_per_block(arm):
-    return BLOCK - len(arm_marker(arm))
+    return arm_block(arm) - len(arm_marker(arm))
 
 
 def build_strand(arm, payload128):
@@ -96,12 +115,12 @@ def build_strand(arm, payload128):
     m = spec["marker"]
     if spec["layout"] == "none":
         return payload128, payload128, []
-    n_data = STRAND_LEN - N_MARKERS * len(m)
+    n_data, nm = arm_n_data(arm), arm_n_markers(arm)
     payload = payload128[:n_data]               # same seed -> first bases shared by all arms
     if spec["layout"] == "periodic":
         d = data_per_block(arm)
         parts, positions = [], []
-        for k in range(N_MARKERS):
+        for k in range(nm):
             parts.append(payload[k * d:(k + 1) * d])
             start = sum(len(p) for p in parts)
             parts.append(m)
@@ -109,8 +128,8 @@ def build_strand(arm, payload128):
         return "".join(parts), payload, positions
     if spec["layout"] == "end_block":
         start = len(payload)
-        positions = [[start + k * len(m), start + (k + 1) * len(m)] for k in range(N_MARKERS)]
-        return payload + m * N_MARKERS, payload, positions
+        positions = [[start + k * len(m), start + (k + 1) * len(m)] for k in range(nm)]
+        return payload + m * nm, payload, positions
     raise ValueError(arm)
 
 
@@ -119,10 +138,10 @@ def remove_markers(arm, strand):
     spec = ARM_SPECS[arm]
     if spec["layout"] == "none":
         return strand
-    n_data = STRAND_LEN - N_MARKERS * len(spec["marker"])
+    n_data = arm_n_data(arm)
     if spec["layout"] == "periodic":
-        d = data_per_block(arm)
-        return "".join(strand[k * BLOCK:k * BLOCK + d] for k in range(N_MARKERS))
+        d, b = data_per_block(arm), arm_block(arm)
+        return "".join(strand[k * b:k * b + d] for k in range(arm_n_markers(arm)))
     if spec["layout"] == "end_block":
         return strand[:n_data]
     raise ValueError(arm)
@@ -273,9 +292,10 @@ def main():
     ap.add_argument("--tiny", action="store_true", help="very small smoke-test dataset")
     ap.add_argument("--arms", default=",".join(ARMS),
                     help="comma-separated arms to build (default: the 3 Stage 1 arms); "
-                         "'lengths' = the marker-length arms %s" % LENGTH_ARMS)
+                         "'lengths' = the marker-length arms %s; 'spacing' = %s" % (LENGTH_ARMS, SPACING_ARMS))
     args = ap.parse_args()
-    arms = LENGTH_ARMS if args.arms == "lengths" else [a.strip() for a in args.arms.split(",")]
+    groups = {"lengths": LENGTH_ARMS, "spacing": SPACING_ARMS}
+    arms = groups.get(args.arms) or [a.strip() for a in args.arms.split(",")]
     for a in arms:
         if a not in ARM_SPECS:
             sys.exit("ERROR: unknown arm %s. Known: %s" % (a, ALL_ARMS))

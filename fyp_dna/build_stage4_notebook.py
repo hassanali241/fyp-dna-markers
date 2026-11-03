@@ -38,6 +38,9 @@ Each team member trains a different version with **exactly the same settings**.
 **Marker-length runs** (data made by `Stage1b_marker_lengths.ipynb`): `marker_len04`, `marker_len05`,
 `marker_len06`, `marker_len07`, `marker_len12`. Same settings; one run per notebook.
 
+**Spacing runs** (data made by `Stage1c_marker_spacing.ipynb`): `marker_len06_n2` (2 markers),
+`marker_len06_n8` (8 markers). 4 markers is `marker_len06`.
+
 Training takes about **1.5 hours**. Keep the tab open.
 **If Colab disconnects:** reconnect (T4 GPU) and **Run all** again. It continues from the last finished epoch.
 """),
@@ -45,12 +48,14 @@ Training takes about **1.5 hours**. Keep the tab open.
     code("""
 ARM = 'marker_periodic'   # one of: 'marker_free', 'marker_periodic', 'marker_endblock',
                           #         'marker_len04', 'marker_len05', 'marker_len06', 'marker_len07', 'marker_len12'
+                          #         'marker_len06_n2', 'marker_len06_n8'   (spacing study)
 
 ARMS_STAGE1  = ('marker_free', 'marker_periodic', 'marker_endblock')
 ARMS_LENGTHS = ('marker_len04', 'marker_len05', 'marker_len06', 'marker_len07', 'marker_len12')
+ARMS_SPACING = ('marker_len06_n2', 'marker_len06_n8')
 SEED = 1   # 1 = original run. Use 2 for the repeat runs (saved as <ARM>_seed2, nothing is overwritten)
 
-assert ARM in ARMS_STAGE1 + ARMS_LENGTHS, 'ARM is misspelled'
+assert ARM in ARMS_STAGE1 + ARMS_LENGTHS + ARMS_SPACING, 'ARM is misspelled'
 RUN = ARM if SEED == 1 else f'{ARM}_seed{SEED}'
 print('This notebook will fine-tune:', ARM, '| seed', SEED, '| saved as', RUN)
 """),
@@ -63,7 +68,8 @@ import os
 PROJECT  = '/content/drive/MyDrive/fyp_dna'
 CODE     = f'{PROJECT}/code'
 REPO     = '/content/Deep-DNA-based-storage'
-DATA     = f'{PROJECT}/data/' + ('stage1_pilot' if ARM in ARMS_STAGE1 else 'stage1_markers')
+DATA     = f'{PROJECT}/data/' + ('stage1_pilot' if ARM in ARMS_STAGE1 else
+                                 'stage1_spacing' if ARM in ARMS_SPACING else 'stage1_markers')
 CKPT     = f'{PROJECT}/checkpoints/DNAFormer_siamese.pth'
 CKPT_DIR = f'{PROJECT}/checkpoints/stage4'
 OUT_DIR  = f'{PROJECT}/results/stage4'

@@ -1,5 +1,5 @@
 """
-Stage 1b validation: checks the marker-length datasets against the original Stage 1 data.
+Stage 1b/1c validation: checks the marker-length and marker-spacing datasets against the original Stage 1 data.
 
 Each new arm must use the SAME payloads (first data bases of the marker_free payload),
 the SAME seeds and error rates, and get errors at the SAME positions (so every read
@@ -69,10 +69,10 @@ def main():
     for arm in arms:
         m = G.arm_marker(arm)
         L, d = len(m), G.data_per_block(arm)
-        n_data = 128 - 4 * L
-        want_pos = [[k * 32 + d, k * 32 + 32] for k in range(4)]
-        print("\n2. %s  marker %s (length %d): 4 x (%d data + %d marker) = %d data bases"
-              % (arm, m, L, d, L, n_data))
+        nm, blk, n_data = G.arm_n_markers(arm), G.arm_block(arm), G.arm_n_data(arm)
+        want_pos = [[k * blk + d, k * blk + blk] for k in range(nm)]
+        print("\n2. %s  marker %s (length %d): %d x (%d data + %d marker) = %d data bases"
+              % (arm, m, L, nm, d, L, n_data))
         total, chance = 0, 0
         ok = collections.Counter()
         for sub in subsets:
@@ -108,7 +108,7 @@ def main():
               "same seeds/rates, 10 reads" % (total, [p[0] for p in want_pos], n_data))
         check(ok["same_error_positions"] == total,
               "every read has the same length as the matching marker_free read (same error positions)")
-        rows.append((arm, m, L, n_data, 4 * L / 128, chance / total))
+        rows.append((arm, m, L, nm, n_data, nm * L / 128, chance / total))
 
     print("\n3. Reproducibility")
     ClusterGenerator = G.load_simulator(args.repo)
@@ -126,10 +126,10 @@ def main():
     check(not bad, "all %d files match checksums.json" % len(sums))
 
     print("\n4. Summary")
-    print("   arm            marker        length  data bases  marker share  payloads containing marker by chance")
-    print("   %-14s %-13s %6d  %10d  %11.1f%%  %s" % ("marker_free", "-", 0, 128, 0.0, "-"))
-    for arm, m, L, n, ov, ch in sorted(rows, key=lambda r: r[2]):
-        print("   %-14s %-13s %6d  %10d  %11.1f%%  %.2f%%" % (arm, m, L, n, 100 * ov, 100 * ch))
+    print("   arm              marker        length  markers  data bases  marker share  payloads containing marker by chance")
+    print("   %-16s %-13s %6s  %7d  %10d  %11.1f%%  %s" % ("marker_free", "-", "-", 0, 128, 0.0, "-"))
+    for arm, m, L, nm, n, ov, ch in sorted(rows, key=lambda r: (r[2], r[3])):
+        print("   %-16s %-13s %6d  %7d  %10d  %11.1f%%  %.2f%%" % (arm, m, L, nm, n, 100 * ov, 100 * ch))
     print("   (length 8, ACGTCAGT: marker_periodic in the Stage 1 data, 96 data bases, 25.0%)")
 
     print("\n" + ("ALL STAGE 1b CHECKS PASSED" if not FAILS else
