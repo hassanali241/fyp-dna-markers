@@ -59,6 +59,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 4. When done: save outputs/CSVs/graphs in `results/stageN/`, update this file, push.
 
 ## Log (newest first)
+- 2026-11-17: marker_len06_n1 retrained from scratch (Drive had kept only its epoch-1 best.pt): 100/99.6/95.1/45.8% (was 46.3%). Stage 4 now checks best.pt epoch and flushes Drive at the end. Next: Stage 5 stats + ablation + XAI for n1.
 - 2026-11-17: marker_len06_n2 test results were missing from Drive (Colab lost epochs 6-10). Haad resumed from epoch 5 and re-scored: 100/99.7/95.4/43.7% (was 44.7% in the lost run). Summaries updated. Stage 5 Part A done (13 runs); rerun to add n2.
 - 2026-11-17: Stage 5 notebook built (`Stage5_analysis.ipynb`, `stage5_analysis.py`): stats with McNemar + bootstrap, marker-scramble ablation, gradient x input / Integrated Gradients / GradientSHAP / attention. Tested end to end on tiny CPU models.
 - 2026-10-28: Stage 1b run in Colab: all checks passed (same payloads, seeds, error positions as Stage 1; 92 files match checksums).
