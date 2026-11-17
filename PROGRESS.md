@@ -32,8 +32,8 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 | 4. Fine-tuning | DONE (all 3 arms) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
 | 1b. Marker-length datasets | DONE | Hassan | Drive `data/stage1_markers` (300 MB); all checks passed in Colab, identical to local run |
 | 4b. Fine-tune marker lengths + spacing | DONE | 3 members | lengths 4/5/6/7/12, spacing n1/n2/n8, seed-2 repeats |
-| 5. Stats + XAI | READY TO RUN | | `Stage5_analysis.ipynb`: A stats (once, minutes), B ablation (~10 min/model), C XAI (~30-45 min/model); split ARMS |
-| 6. Analysis | Not started | | |
+| 5. Stats + XAI | DONE | Haad, Hassan, Mahek | `results/stage5/ablation_xai.md`; stats/figures in Drive `results/stage5` |
+| 6. Analysis + paper | NEXT | | |
 
 ## Key facts so far
 - Dataset per arm: 10,000 train (mixed 1/3/5/8% deletion), 1,000 val, 1,000 test per
@@ -59,6 +59,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 4. When done: save outputs/CSVs/graphs in `results/stageN/`, update this file, push.
 
 ## Log (newest first)
+- 2026-11-17: Stage 5 DONE. Ablation at 8%: scrambling markers costs -51 (8x6), -22 (8-base x4), -18 (6-base x4), -12 (1 middle marker), -3.8 (end-block) pts. XAI marker/space ratio: x1.24 (1 marker), ~x1 (4-8 markers), x0.56 (end-block).
 - 2026-11-17: marker_len06_n1 retrained from scratch (Drive had kept only its epoch-1 best.pt): 100/99.6/95.1/45.8% (was 46.3%). Stage 4 now checks best.pt epoch and flushes Drive at the end. Next: Stage 5 stats + ablation + XAI for n1.
 - 2026-11-17: marker_len06_n2 test results were missing from Drive (Colab lost epochs 6-10). Haad resumed from epoch 5 and re-scored: 100/99.7/95.4/43.7% (was 44.7% in the lost run). Summaries updated. Stage 5 Part A done (13 runs); rerun to add n2.
 - 2026-11-17: Stage 5 notebook built (`Stage5_analysis.ipynb`, `stage5_analysis.py`): stats with McNemar + bootstrap, marker-scramble ablation, gradient x input / Integrated Gradients / GradientSHAP / attention. Tested end to end on tiny CPU models.
