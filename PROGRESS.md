@@ -31,8 +31,8 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 | 3. Baselines | DONE | Hassan's teammate | `results/stage3/summary.md`; CSVs in Drive `results/stage3` | Majority vote + pretrained DNAFormer, metrics CSVs |
 | 4. Fine-tuning | DONE (all 3 arms) | 3 members, one ARM each | `Stage4_finetune.ipynb`; ~1.5 h on T4; paste output from `Training finished` |
 | 1b. Marker-length datasets | DONE | Hassan | Drive `data/stage1_markers` (300 MB); all checks passed in Colab, identical to local run |
-| 4b. Fine-tune marker lengths | READY TO RUN | | `Stage4_finetune.ipynb` with ARM = marker_len04 / 05 / 06 / 07 / 12; ~1.5 h each on T4 |
-| 5. Final eval + graphs | NEXT | | Recovery rate and edit distance vs deletion rate |
+| 4b. Fine-tune marker lengths + spacing | DONE | 3 members | lengths 4/5/6/7/12, spacing n1/n2/n8, seed-2 repeats |
+| 5. Stats + XAI | READY TO RUN | | `Stage5_analysis.ipynb`: A stats (once, minutes), B ablation (~10 min/model), C XAI (~30-45 min/model); split ARMS |
 | 6. Analysis | Not started | | |
 
 ## Key facts so far
@@ -59,6 +59,7 @@ position differs. Periodic > end-block means the spacing (synchronization) helps
 4. When done: save outputs/CSVs/graphs in `results/stageN/`, update this file, push.
 
 ## Log (newest first)
+- 2026-11-17: Stage 5 notebook built (`Stage5_analysis.ipynb`, `stage5_analysis.py`): stats with McNemar + bootstrap, marker-scramble ablation, gradient x input / Integrated Gradients / GradientSHAP / attention. Tested end to end on tiny CPU models.
 - 2026-10-28: Stage 1b run in Colab: all checks passed (same payloads, seeds, error positions as Stage 1; 92 files match checksums).
 - 2026-10-28: Stage 4b marker_len07 DONE: test exact 100/99.8/96.1/49.9%. All 5 lengths done; see results/stage4/marker_lengths_summary.md.
 - 2026-10-28: Stage 4b marker_len12 DONE: test exact 100/99.8/97.1/62.3%.
