@@ -45,6 +45,7 @@ Suggested split for Parts B + C:
 | Member 3 | `marker_len06_n8,marker_periodic` |
 
 Part A only needs to be run **once** (by anyone): it reads every run in `results/stage4`.
+Parts B + C save into your own folder `results/stage5/<your ARMS>/`, so all three can run at the same time.
 """),
     md("### Cell 1: choose what to run (the ONLY thing you change)"),
     code("""
@@ -70,6 +71,7 @@ PROJECT = '/content/drive/MyDrive/fyp_dna'
 CODE    = f'{PROJECT}/code'
 REPO    = '/content/Deep-DNA-based-storage'
 OUT     = f'{PROJECT}/results/stage5'
+OUT_BC  = f'{OUT}/' + ARMS.replace(',', '__')   # own folder per person, so parallel runs never overwrite each other
 os.makedirs(CODE, exist_ok=True); os.makedirs(OUT, exist_ok=True)
 
 runs = sorted(d for d in os.listdir(f'{PROJECT}/results/stage4')
@@ -122,7 +124,7 @@ If recovery drops, the model **uses** the markers. **Paste back** the table abov
 """),
     code("""
 if 'ablation' in PARTS:
-    !cd {CODE} && python stage5_analysis.py --part ablation --project {PROJECT} --repo {REPO} --arms {ARMS} --out {OUT} 2>&1 | grep -v Warning
+    !cd {CODE} && python stage5_analysis.py --part ablation --project {PROJECT} --repo {REPO} --arms {ARMS} --out {OUT_BC} 2>&1 | grep -v Warning
 else:
     print('skipped (ablation not in PARTS)')
 """),
@@ -130,11 +132,11 @@ else:
 ### Cell 11: Part C, XAI (~30-45 min per model)
 Gradient x input on 100 test strands (8% deletion), Integrated Gradients + GradientSHAP on 20, attention on 50.
 **Paste back** the table above `STAGE 5 XAI DONE`.
-Figures (`heatmaps.png`, `marker_share.png`, `example_read_*.png`) are saved in `results/stage5/xai/`.
+Figures (`heatmaps.png`, `marker_share.png`, `example_read_*.png`) are saved in `results/stage5/<your ARMS>/xai/`.
 """),
     code("""
 if 'xai' in PARTS:
-    !cd {CODE} && python stage5_analysis.py --part xai --project {PROJECT} --repo {REPO} --arms {ARMS} --out {OUT} 2>&1 | grep -v Warning
+    !cd {CODE} && python stage5_analysis.py --part xai --project {PROJECT} --repo {REPO} --arms {ARMS} --out {OUT_BC} 2>&1 | grep -v Warning
 else:
     print('skipped (xai not in PARTS)')
 """),
@@ -142,7 +144,8 @@ else:
     code("""
 import glob
 from IPython.display import Image, display
-for p in sorted(glob.glob(f'{OUT}/**/*.png', recursive=True)):
+pngs = glob.glob(f'{OUT}/stats/*.png') if PARTS == ['stats'] else glob.glob(f'{OUT_BC}/**/*.png', recursive=True)
+for p in sorted(pngs):
     print(p.replace(PROJECT + '/', '')); display(Image(p, width=900))
 """),
     md("""
