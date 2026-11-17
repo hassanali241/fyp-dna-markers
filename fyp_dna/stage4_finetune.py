@@ -341,6 +341,10 @@ def main():
     log("\nTraining finished. Best epoch %d (val NED %.4f)." % (best["epoch"], best["val_ned"]))
     if best["epoch"] > 0:
         bst = torch.load(best_path, map_location=device, weights_only=False)
+        if bst.get("epoch") != best["epoch"]:
+            sys.exit("ERROR: %s holds epoch %s, but the best epoch is %d. Google Drive did not keep the latest "
+                     "best.pt, so this is not the model to test. Nothing was overwritten. Paste this to Claude."
+                     % (best_path, bst.get("epoch"), best["epoch"]))
         model.load_state_dict(bst["model"], strict=True)
     else:
         log("NOTE: no epoch beat the pretrained model on validation; scoring the pretrained weights.")
