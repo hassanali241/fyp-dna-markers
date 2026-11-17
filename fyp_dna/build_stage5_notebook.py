@@ -78,7 +78,7 @@ runs = sorted(d for d in os.listdir(f'{PROJECT}/results/stage4')
               if os.path.isfile(f'{PROJECT}/results/stage4/{d}/predictions.csv'))
 print('Stage 4 runs with test predictions:', ', '.join(runs))
 missing = []
-check = ARMS.split(',') + (['marker_free', 'marker_len06_n1'] if 'example' in PARTS else [])
+check = ARMS.split(',') + (['marker_free', 'marker_len06_n1', 'marker_len06_n8'] if 'example' in PARTS else [])
 if {'ablation', 'xai', 'example'} & set(PARTS):
     for a in dict.fromkeys(check):
         p = f'{PROJECT}/checkpoints/stage4/{a}/best.pt'
@@ -143,13 +143,13 @@ else:
 """),
     md("""
 ### Cell 12: worked example (about 3 min, only if 'example' is in PARTS)
-Finds a test strand at 8% deletion that the no-marker model gets wrong and the 1-marker model gets right, and saves
+Finds a test strand at 8% deletion that the no-marker model gets wrong and the 1-marker and 8-marker models get right, and saves
 which read letters each model relied on (`results/stage5/example/example_data.json`). **Paste back** the lines above
 `STAGE 5 EXAMPLE DONE`. Claude draws the figure from the saved file.
 """),
     code("""
 if 'example' in PARTS:
-    !cd {CODE} && python stage5_analysis.py --part example --project {PROJECT} --repo {REPO} --arms marker_free,marker_len06_n1 --out {OUT} 2>&1 | grep -v Warning
+    !cd {CODE} && python stage5_analysis.py --part example --project {PROJECT} --repo {REPO} --arms marker_free,marker_len06_n1,marker_len06_n8 --out {OUT} 2>&1 | grep -v Warning
 else:
     print('skipped (example not in PARTS)')
 """),

@@ -663,8 +663,8 @@ def part_example(args):
     out = os.path.join(args.out, "example")
     os.makedirs(out, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    if len(args.arms) != 2:
-        sys.exit("ERROR: --part example needs exactly two runs, e.g. marker_free,marker_len06_n1")
+    if len(args.arms) < 2:
+        sys.exit("ERROR: --part example needs a no-marker run first, then marker runs, e.g. marker_free,marker_len06_n1")
     level = 0.08
     n = args.limit or 300
     runs = args.arms
@@ -675,11 +675,11 @@ def part_example(args):
         preds[run] = predict(torch, models[run], arm_of(run), tests[run], device)
         ok = sum(p == c["payload_strand"] for p, c in zip(preds[run], tests[run]))
         print("  %-18s best epoch %s | %d/%d of the first test strands at 8%% fully recovered" % (run, ep, ok, n))
-    a, b = runs
+    a, others = runs[0], runs[1:]
     cands = []
-    for i, (ca, cb) in enumerate(zip(tests[a], tests[b])):
-        assert ca["pair_id"] == cb["pair_id"]
-        if preds[a][i] == ca["payload_strand"] or preds[b][i] != cb["payload_strand"]:
+    for i, ca in enumerate(tests[a]):
+        assert all(tests[r][i]["pair_id"] == ca["pair_id"] for r in others)
+        if preds[a][i] == ca["payload_strand"] or any(preds[r][i] != tests[r][i]["payload_strand"] for r in others):
             continue
         with torch.inference_mode():
             x, _ = A.make_batch([ca], "relaxed", device)
@@ -688,7 +688,7 @@ def part_example(args):
         mid = sum(30 <= k < 98 for k in wrong)
         cands.append((len(wrong) > 8, -mid / max(1, len(wrong)), len(wrong), i))
     cands.sort()
-    print("  %d test strands: %s wrong, %s right" % (len(cands), a, b))
+    print("  %d test strands: %s wrong, %s right" % (len(cands), a, " and ".join(others)))
     chosen = [c[3] for c in cands[:3]]
     if not chosen:
         print("  NOTE: no such strand in the first %d; showing the first test strand instead" % n)
@@ -702,9 +702,9 @@ def part_example(args):
             item["runs"][run] = {"arm": arm_of(run), "clean_strand": c["clean_strand"], "prediction": pred,
                                  "marker_mask": marker_mask(arm_of(run)), "reads": reads,
                                  "payload_correct": G.remove_markers(arm_of(run), pred) == c["payload_strand"]}
-        wa = sum(p != q for p, q in zip(item["runs"][a]["prediction"], item["runs"][a]["clean_strand"]))
-        wb = sum(p != q for p, q in zip(item["runs"][b]["prediction"], item["runs"][b]["clean_strand"]))
-        print("  example %s: %s gets %d strand letters wrong, %s gets %d wrong" % (item["pair_id"], a, wa, b, wb))
+        wrong = ["%s %d" % (r, sum(p != q for p, q in zip(item["runs"][r]["prediction"], item["runs"][r]["clean_strand"])))
+                 for r in runs]
+        print("  example %s: wrong strand letters: %s" % (item["pair_id"], ", ".join(wrong)))
         data.append(item)
     with open(os.path.join(out, "example_data.json"), "w") as f:
         json.dump(data, f)
