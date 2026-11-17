@@ -49,7 +49,7 @@ Parts B + C save into your own folder `results/stage5/<your ARMS>/`, so all thre
 """),
     md("### Cell 1: choose what to run (the ONLY thing you change)"),
     code("""
-PARTS = ['stats', 'ablation', 'xai']        # any of 'stats', 'ablation', 'xai'
+PARTS = ['stats', 'ablation', 'xai']        # any of 'stats', 'ablation', 'xai', 'example'
 ARMS  = 'marker_free,marker_endblock'       # models for ablation + XAI (comma separated, no spaces)
                                             # e.g. marker_len06,marker_len06_n1   or   marker_len06_n8,marker_periodic
 
@@ -58,7 +58,7 @@ ALL_RUNS = ('marker_free', 'marker_periodic', 'marker_endblock',
             'marker_len06_n1', 'marker_len06_n2', 'marker_len06_n8')
 for a in ARMS.split(','):
     assert a in ALL_RUNS, f'{a} is misspelled'
-assert set(PARTS) <= {'stats', 'ablation', 'xai'}, 'PARTS is misspelled'
+assert set(PARTS) <= {'stats', 'ablation', 'xai', 'example'}, 'PARTS is misspelled'
 print('Parts:', PARTS, '| models for B/C:', ARMS)
 """),
     md("### Cell 2: mount Drive, set paths, check the Stage 4 models"),
@@ -78,8 +78,9 @@ runs = sorted(d for d in os.listdir(f'{PROJECT}/results/stage4')
               if os.path.isfile(f'{PROJECT}/results/stage4/{d}/predictions.csv'))
 print('Stage 4 runs with test predictions:', ', '.join(runs))
 missing = []
-if 'ablation' in PARTS or 'xai' in PARTS:
-    for a in ARMS.split(','):
+check = ARMS.split(',') + (['marker_free', 'marker_len06_n1'] if 'example' in PARTS else [])
+if {'ablation', 'xai', 'example'} & set(PARTS):
+    for a in dict.fromkeys(check):
         p = f'{PROJECT}/checkpoints/stage4/{a}/best.pt'
         print('found' if os.path.isfile(p) else 'MISSING', ' ', p)
         if not os.path.isfile(p):
@@ -140,7 +141,19 @@ if 'xai' in PARTS:
 else:
     print('skipped (xai not in PARTS)')
 """),
-    md("### Cell 12: show the figures"),
+    md("""
+### Cell 12: worked example (about 3 min, only if 'example' is in PARTS)
+Finds a test strand at 8% deletion that the no-marker model gets wrong and the 1-marker model gets right, and saves
+which read letters each model relied on (`results/stage5/example/example_data.json`). **Paste back** the lines above
+`STAGE 5 EXAMPLE DONE`. Claude draws the figure from the saved file.
+"""),
+    code("""
+if 'example' in PARTS:
+    !cd {CODE} && python stage5_analysis.py --part example --project {PROJECT} --repo {REPO} --arms marker_free,marker_len06_n1 --out {OUT} 2>&1 | grep -v Warning
+else:
+    print('skipped (example not in PARTS)')
+"""),
+    md("### Cell 13: show the figures"),
     code("""
 import glob
 from IPython.display import Image, display

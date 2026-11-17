@@ -637,9 +637,84 @@ def example_figure(plt, torch, model, arm, run, c, device, out):
 
 
 # ===========================================================================
+# Part 4: one worked example (same test strand, two models), saved as data for a figure
+# ===========================================================================
+def explain_cluster(torch, model, c, device):
+    """Importance of every read letter (gradient x input over all output letters) + the model's raw output."""
+    x, y = A.make_batch([c], "relaxed", device)
+    X = x.clone().requires_grad_(True)
+    with torch.enable_grad():
+        out = model(X)["pred"]
+        score = out[0].gather(0, y[0].unsqueeze(0)).sum()
+        g, = torch.autograd.grad(score, X)
+    att = (g * X).detach().float().cpu().numpy()
+    pred = A.decode(out.detach())[0]
+    imp = read_importance(att, c["noisy_reads"])
+    reads = []
+    for i, r in enumerate(c["noisy_reads"][:A.MAX_READS]):
+        rr = r[:len(imp[i])]
+        reads.append({"read": rr, "importance": [round(float(v), 6) for v in imp[i]],
+                      "strand_pos": align_read_to_strand(c["clean_strand"], rr)})
+    return pred, reads
+
+
+def part_example(args):
+    import torch
+    out = os.path.join(args.out, "example")
+    os.makedirs(out, exist_ok=True)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if len(args.arms) != 2:
+        sys.exit("ERROR: --part example needs exactly two runs, e.g. marker_free,marker_len06_n1")
+    level = 0.08
+    n = args.limit or 300
+    runs = args.arms
+    models, tests, preds = {}, {}, {}
+    for run in runs:
+        models[run], ep = load_finetuned(args, run, device)
+        tests[run] = load_test(args.project, arm_of(run), level, n)
+        preds[run] = predict(torch, models[run], arm_of(run), tests[run], device)
+        ok = sum(p == c["payload_strand"] for p, c in zip(preds[run], tests[run]))
+        print("  %-18s best epoch %s | %d/%d of the first test strands at 8%% fully recovered" % (run, ep, ok, n))
+    a, b = runs
+    cands = []
+    for i, (ca, cb) in enumerate(zip(tests[a], tests[b])):
+        assert ca["pair_id"] == cb["pair_id"]
+        if preds[a][i] == ca["payload_strand"] or preds[b][i] != cb["payload_strand"]:
+            continue
+        with torch.inference_mode():
+            x, _ = A.make_batch([ca], "relaxed", device)
+            raw = A.decode(models[a](x)["pred"])[0]
+        wrong = [k for k in range(STRAND) if raw[k] != ca["clean_strand"][k]]
+        mid = sum(30 <= k < 98 for k in wrong)
+        cands.append((len(wrong) > 8, -mid / max(1, len(wrong)), len(wrong), i))
+    cands.sort()
+    print("  %d test strands: %s wrong, %s right" % (len(cands), a, b))
+    chosen = [c[3] for c in cands[:3]]
+    if not chosen:
+        print("  NOTE: no such strand in the first %d; showing the first test strand instead" % n)
+        chosen = [0]
+    data = []
+    for i in chosen:
+        item = {"pair_id": tests[a][i]["pair_id"], "deletion_rate": level, "runs": {}}
+        for run in runs:
+            c = tests[run][i]
+            pred, reads = explain_cluster(torch, models[run], c, device)
+            item["runs"][run] = {"arm": arm_of(run), "clean_strand": c["clean_strand"], "prediction": pred,
+                                 "marker_mask": marker_mask(arm_of(run)), "reads": reads,
+                                 "payload_correct": G.remove_markers(arm_of(run), pred) == c["payload_strand"]}
+        wa = sum(p != q for p, q in zip(item["runs"][a]["prediction"], item["runs"][a]["clean_strand"]))
+        wb = sum(p != q for p, q in zip(item["runs"][b]["prediction"], item["runs"][b]["clean_strand"]))
+        print("  example %s: %s gets %d strand letters wrong, %s gets %d wrong" % (item["pair_id"], a, wa, b, wb))
+        data.append(item)
+    with open(os.path.join(out, "example_data.json"), "w") as f:
+        json.dump(data, f)
+    print("\nSaved to %s\nSTAGE 5 EXAMPLE DONE" % out)
+
+
+# ===========================================================================
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--part", required=True, choices=["stats", "ablation", "xai"])
+    ap.add_argument("--part", required=True, choices=["stats", "ablation", "xai", "example"])
     ap.add_argument("--results", help="results/stage4 folder (stats)")
     ap.add_argument("--project", help="MyDrive/fyp_dna (ablation, xai)")
     ap.add_argument("--repo", help="Deep-DNA-based-storage (ablation, xai)")
@@ -658,7 +733,7 @@ def main():
     if bad:
         sys.exit("ERROR: unknown run(s) %s" % bad)
     os.makedirs(args.out, exist_ok=True)
-    {"stats": part_stats, "ablation": part_ablation, "xai": part_xai}[args.part](args)
+    {"stats": part_stats, "ablation": part_ablation, "xai": part_xai, "example": part_example}[args.part](args)
 
 
 if __name__ == "__main__":
