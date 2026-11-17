@@ -129,6 +129,16 @@ The full log is also saved to `MyDrive/fyp_dna/checkpoints/stage4/<ARM>/train_lo
 !cd {CODE} && python stage4_finetune.py --repo {REPO} --data {DATA} --ckpt {CKPT} --arm {ARM} --seed {SEED} --ckpt-dir {CKPT_DIR} --out-dir {OUT_DIR} 2>&1 | grep -v Warning
 """),
     md("""
+### Cell 11: finish saving to Google Drive (do NOT skip, do NOT close the tab before it says OK)
+Colab uploads the big model files to Drive in the background. Closing the tab too early leaves an
+**old** `best.pt` in Drive (this happened to two runs).
+"""),
+    code("""
+from google.colab import drive
+drive.flush_and_unmount()
+print('OK: everything is saved to Google Drive. You can close the tab now.')
+"""),
+    md("""
 ---
 **Saved to Drive**
 - `checkpoints/stage4/<ARM>/best.pt`: the fine-tuned model (best validation epoch), about 0.4 GB
