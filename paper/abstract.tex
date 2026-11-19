@@ -1,0 +1,11 @@
+Deletions are the hardest errors in DNA data storage because they shift every later position of a read. We study
+whether short synchronization markers, a classical tool from coding theory, help a deep-learning reconstruction model.
+We fine-tune DNAFormer, a convolution--transformer network, on eleven designs of 128-nt strands that differ only in the
+length, number and placement of their markers, and test them with 10 simulated reads per strand at deletion rates of
+1--8\%. At 8\% deletion, four markers spread along the strand raise exact strand recovery from 38.8\% to 52.4\%, while the
+same markers placed together at the end give no significant gain (41.0\%), so placement, not the shorter payload, drives
+the effect. Eight 6-nt markers reach 69.6\%, and a single 6-nt marker in the middle gives the largest net data gain
+(+12.5\%) at only 3.7\% cost when deletions are rare. Error-position profiles, a marker-scrambling ablation and
+attribution maps (gradient$\times$input, Integrated Gradients, GradientSHAP) explain why: errors build up far from any
+anchor, models trained with interior markers depend on them (scrambling the eight markers drops recovery from 69.6\%
+to 18.4\%), and they draw on markers for nearby positions. Markers pay off only under heavy deletion.

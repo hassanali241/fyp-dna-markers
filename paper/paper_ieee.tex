@@ -1,0 +1,35 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx,amsmath,amssymb,cite,url}
+\usepackage[hidelinks]{hyperref}
+\newenvironment{widefigure}[1][t]{\begin{figure*}[#1]}{\end{figure*}}
+\newenvironment{widetable}[1][t]{\begin{table*}[#1]}{\end{table*}}
+
+\newif\ifextended
+\extendedtrue
+\begin{document}
+\title{Where to Put the Anchor: Synchronization Markers for Transformer-Based DNA Trace Reconstruction}
+
+\author{
+\IEEEauthorblockN{Author One\IEEEauthorrefmark{1}, Author Two\IEEEauthorrefmark{1}, Author Three\IEEEauthorrefmark{1}, and Supervisor Name}
+\IEEEauthorblockA{Department of Computer Science, [University], [City], [Country]\\
+\{author1, author2, author3, supervisor\}@[university].edu}
+\thanks{\IEEEauthorrefmark{1}These authors contributed equally.}
+}
+
+\maketitle
+
+\begin{abstract}
+\input{abstract.tex}
+\end{abstract}
+
+\begin{IEEEkeywords}
+DNA data storage, trace reconstruction, synchronization markers, deletion errors, transformers, explainable AI
+\end{IEEEkeywords}
+
+\input{body.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\end{document}

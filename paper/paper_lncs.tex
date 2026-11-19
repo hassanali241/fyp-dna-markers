@@ -1,0 +1,34 @@
+\documentclass[runningheads]{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx,amsmath,amssymb}
+\usepackage[hidelinks]{hyperref}
+\newenvironment{widefigure}[1][t]{\begin{figure}[#1]}{\end{figure}}
+\newenvironment{widetable}[1][t]{\begin{table}[#1]}{\end{table}}
+
+\newif\ifextended
+\extendedfalse
+\begin{document}
+\title{Where to Put the Anchor: Synchronization Markers for Transformer-Based DNA Trace Reconstruction}
+\titlerunning{Synchronization Markers for DNA Trace Reconstruction}
+
+\author{Author One\inst{1}\thanks{These authors contributed equally.} \and
+Author Two\inst{1}\protect\footnotemark[1] \and
+Author Three\inst{1}\protect\footnotemark[1] \and
+Supervisor Name\inst{1}}
+\authorrunning{A. One et al.}
+\institute{Department of Computer Science, [University], [City], [Country]\\
+\email{\{author1,author2,author3,supervisor\}@[university].edu}}
+
+\maketitle
+
+\begin{abstract}
+\input{abstract.tex}
+\keywords{DNA data storage \and Trace reconstruction \and Synchronization markers \and Deletion errors \and Transformers \and Explainable AI}
+\end{abstract}
+
+\input{body.tex}
+
+\bibliographystyle{splncs04}
+\bibliography{refs}
+\end{document}
