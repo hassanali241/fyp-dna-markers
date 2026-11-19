@@ -1,0 +1,17 @@
+\begin{tabular}{lllrr}
+\hline
+Design & Marker & Layout (data + marker) & Data nt & Overhead \\
+\hline
+No markers & -- & -- & 128 & 0.0\% \\
+End-block (control) & \texttt{ACGTCAGT} & $4\times8$, end & 96 & 25.0\% \\
+Spread 8-nt $\times$4 & \texttt{ACGTCAGT} & $4\times(24+8)$ & 96 & 25.0\% \\
+Spread 4-nt $\times$4 & \texttt{CAGT} & $4\times(28+4)$ & 112 & 12.5\% \\
+Spread 5-nt $\times$4 & \texttt{TCATG} & $4\times(27+5)$ & 108 & 15.6\% \\
+Spread 6-nt $\times$4 & \texttt{CTGTCA} & $4\times(26+6)$ & 104 & 18.8\% \\
+Spread 7-nt $\times$4 & \texttt{CTGATCA} & $4\times(25+7)$ & 100 & 21.9\% \\
+Spread 12-nt $\times$4 & \texttt{ACGTCAGTGCAT} & $4\times(20+12)$ & 80 & 37.5\% \\
+Middle 6-nt $\times$1 & \texttt{CTGTCA} & $61+6+61$ & 122 & 4.7\% \\
+Spread 6-nt $\times$2 & \texttt{CTGTCA} & $2\times(58+6)$ & 116 & 9.4\% \\
+Spread 6-nt $\times$8 & \texttt{CTGTCA} & $8\times(10+6)$ & 80 & 37.5\% \\
+\hline
+\end{tabular}

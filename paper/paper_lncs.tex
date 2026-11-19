@@ -2,10 +2,16 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx,amsmath,amssymb}
-\usepackage[hidelinks]{hyperref}
-\newenvironment{widefigure}[1][t]{\begin{figure}[#1]}{\end{figure}}
-\newenvironment{widetable}[1][t]{\begin{table}[#1]}{\end{table}}
+\usepackage{xcolor}
+\definecolor{linkblue}{HTML}{1F4E9C}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+\newenvironment{widefigure}[1][t]{\begin{figure}[htbp]}{\end{figure}}
+\newenvironment{widetable}[1][t]{\begin{table}[htbp]}{\end{table}}
+\renewcommand{\topfraction}{0.9}\renewcommand{\bottomfraction}{0.8}\renewcommand{\textfraction}{0.1}\renewcommand{\floatpagefraction}{0.8}
 
+\newenvironment{pfigure}{\begin{figure}[htbp]}{\end{figure}}
+\newenvironment{ptable}{\begin{table}[htbp]}{\end{table}}
+\newcommand{\smallfig}{0.62\textwidth}
 \newif\ifextended
 \extendedfalse
 \begin{document}

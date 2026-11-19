@@ -72,23 +72,24 @@ attributions alone show where a model looks but not whether that matters.
   compared on identical random draws.}
   \label{fig:pipeline}
 \end{widefigure}
-Fig.~\ref{fig:pipeline} summarizes the pipeline.
 \fi
 
-\subsection{Data and strand designs}
-Each cluster holds one 128-nt strand and 10 noisy reads. Payloads are uniformly random. Markers replace payload
-positions, so a design with $m$ marker nucleotides stores $128-m$ data nucleotides (Table~\ref{tab:results},
-Fig.~\ref{fig:layouts}). Reads are produced with the simulator released with DNAFormer~\cite{barlev2025}; each base is
-deleted with probability $p_d\in\{1,3,5,8\}\%$, and insertions and substitutions occur with probability 1\% each
-(single-base events only). The training set has 10{,}000 clusters (2{,}500 per deletion rate, mixed), the validation set
-1{,}000, and each test set 1{,}000 clusters per deletion rate. All designs share the same payload seeds and noise seeds,
-so cluster $i$ of every design comes from the same random draws; this allows paired statistical tests.
+\subsection{Dataset construction}\label{sec:data}
+We built a synthetic dataset in which every strand design is generated from the same random draws, so that designs
+can be compared strand by strand. Each \emph{cluster} consists of one 128-nt reference strand and 10 noisy reads.\ifextended{} Fig.~\ref{fig:pipeline} summarizes the pipeline.\fi
 
-We study eleven designs. The \emph{spread} layouts divide the strand into $k$ equal blocks of data followed by a marker,
-so the last marker sits at the end of the strand. The \emph{end-block} control places the same four 8-nt markers of the
-spread 8-nt design together at the end: same marker content and same 96 data nucleotides, different placement. A
-\emph{middle} layout places a single marker in the centre. Marker sequences were chosen to have no repeated adjacent
-letter, no self-overlap, a GC content of 40--60\%, and a low occurrence in random payloads.
+\textbf{Payloads.} For cluster $i$ a seeded random-number generator draws a 128-nt sequence uniformly from
+$\{\mathrm{A,C,G,T}\}$. A design with $m$ marker nucleotides uses the first $128-m$ nucleotides of this sequence as its
+data and inserts its markers, so every reference strand is exactly 128\,nt long and all designs share the same leading
+data. Seed ranges are disjoint between the training, validation and test splits and between deletion rates, so no
+payload appears in two splits.
+
+\textbf{Strand designs.} We study eleven designs (Table~\ref{tab:designs}\ifextended, Fig.~\ref{fig:layouts}\fi). The
+\emph{spread} layouts divide the data into $k$ equal blocks, each followed by a marker, so the last marker sits at the
+end of the strand. The \emph{end-block} control places the four 8-nt markers of the spread 8-nt design together at the
+end: same marker content and same 96 data nucleotides, different placement. The \emph{middle} layout places a single
+marker in the centre. Marker sequences were chosen to have no repeated adjacent letter, no self-overlap, a GC content of
+40--60\%, and a low occurrence in random payloads.
 \ifextended
 We enumerated all candidate $k$-mers for each length, removed those violating the first three rules, and ranked the rest
 by how often they occur in the generated payloads. Repeating the ranking on two independently generated datasets gave
@@ -96,12 +97,37 @@ almost no agreement in rank among the valid candidates, as expected for uniforml
 the choice among valid candidates of one length as arbitrary and study length, number and placement instead.
 \fi
 
-\begin{figure}[t]
+\textbf{Noisy reads.} Reads are generated with the cluster simulator released with DNAFormer~\cite{barlev2025}. Each
+reference nucleotide is independently deleted with probability $p_d\in\{1,3,5,8\}\%$ and substituted or followed by an
+inserted random nucleotide with probability 1\% each; all events are single-base. The simulator is seeded per cluster
+(noise seed = payload seed + $10^{9}$) and always returns exactly 10 reads. The measured deletion rates in the
+generated reads are 1.0, 2.9, 4.9 and 7.6\%. Because the noise seed depends only on the cluster index, the reads of all
+designs are drawn with the same random numbers.
+
+\textbf{Splits.} The training set has 10{,}000 clusters (2{,}500 per deletion rate, shuffled together with a fixed
+seed), the validation set 1{,}000 clusters (250 per rate) and the test set 1{,}000 clusters per deletion rate, i.e.\
+4{,}000 test clusters and 40{,}000 test reads per design. Every split stores the reference strand, the data
+nucleotides, the marker positions, the seeds and the reads in one metadata file. Regenerating the dataset from the
+seeds reproduces it byte for byte.
+
+\begin{ptable}
+  \centering
+  \caption{Strand designs. Layouts give data + marker nucleotides per block. Overhead = share of the 128-nt strand used
+  by markers.}
+  \label{tab:designs}
+  \footnotesize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\columnwidth}{!}{\input{table_designs.tex}}
+\end{ptable}
+
+\ifextended
+\begin{pfigure}
   \centering
   \includegraphics[width=\columnwidth]{figures/fig_layouts.pdf}
   \caption{Five of the eleven strand designs. Orange = marker nucleotides.}
   \label{fig:layouts}
-\end{figure}
+\end{pfigure}
+\fi
 
 \subsection{Model and fine-tuning}
 DNAFormer~\cite{barlev2025} reads up to 16 reads per cluster, each padded to 132 positions and one-hot encoded. A
@@ -160,12 +186,12 @@ significantly better than the marker-free model ($p\le0.003$).
 \begin{widetable}[t]
   \centering
   \caption{Fine-tuned DNAFormer on 1{,}000 test strands per deletion rate. Exact = strands with all data nucleotides
-  correct (\%, 95\% Wilson interval at 8\%); layouts give data + marker nucleotides per block. $p$ = exact McNemar test against the marker-free design at 8\%.
+  correct (\%, 95\% Wilson interval at 8\%). $p$ = exact McNemar test against the marker-free design at 8\%.
   $\Delta D$ = net data recovered relative to the marker-free design (\%).}
   \label{tab:results}
   \footnotesize
   \setlength{\tabcolsep}{3.2pt}
-  \ifextended\resizebox{\textwidth}{!}{\input{table_results.tex}}\else\resizebox{\textwidth}{!}{\input{table_results_short.tex}}\fi
+  \ifextended\input{table_results.tex}\else\resizebox{\textwidth}{!}{\input{table_results.tex}}\fi
 \end{widetable}
 
 \begin{widefigure}[t]
@@ -204,18 +230,20 @@ marker space, many short markers beat fewer long ones: eight 6-nt markers recove
 markers ($p=4.1\times10^{-5}$), also in net data (+5{,}840 per 1{,}000 strands, 95\% CI [3{,}120, 8{,}480]).
 \ifextended
 Fig.~\ref{fig:lennum} shows both trends.
-\begin{figure}[t]
+\begin{pfigure}
   \centering
   \includegraphics[width=\columnwidth]{figures/fig_length_number.pdf}
   \caption{Exact recovery at 8\% deletion versus (a) marker length with four spread markers and (b) the number of 6-nt
   markers (95\% intervals). Dashed: marker-free design.}
   \label{fig:lennum}
-\end{figure}
+\end{pfigure}
 \fi
 
 Only two designs recover significantly more net data than the marker-free design at 8\%: one middle 6-nt marker
 (+12.5\%, CI [+4.5, +20.2]\%) and eight 6-nt markers (+12.1\%, CI [+4.2, +20.0]\%); the two are indistinguishable in net
 data. They differ sharply at low deletion: at 5\% the single marker costs 3.7\% of net data, eight markers 35.3\%.
+
+
 
 \subsection{Reproducibility}
 Retraining three designs with a second seed changed exact recovery at 8\% by 0.0 (marker-free), $+0.2$ (8-nt spread) and
@@ -232,6 +260,8 @@ saw-tooth pattern consistent with re-synchronization. The end-block profile foll
 markers lie where errors are already rare. A single middle marker cuts the peak from about 14\% to 10\%, and eight
 markers keep the error rate below about 4\% at every position.
 
+
+
 \begin{widefigure}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/fig_errors.pdf}
@@ -239,6 +269,32 @@ markers keep the error rate below about 4\% at every position.
   positions of the spread 8-nt (a) and 8$\times$6-nt (b) designs; gaps are marker positions, which are not scored.}
   \label{fig:errors}
 \end{widefigure}
+
+\begin{pfigure}
+  \centering
+  \includegraphics[width=\smallfig]{figures/fig_ablation.pdf}
+  \caption{Marker ablation at 8\% deletion: same model, same reads and noise, marker letters scrambled. Bold numbers:
+  drop in percentage points. Dashed line: marker-free model.}
+  \label{fig:ablation}
+\end{pfigure}
+
+\ifextended
+\begin{pfigure}
+  \centering
+  \includegraphics[width=\columnwidth]{figures/fig_heatmaps_col.pdf}
+  \caption{Gradient$\times$input attribution maps averaged over 100 test strands at 8\% deletion. Row = output position,
+  column = aligned read position; darker = more attribution. Orange ticks: marker positions.}
+  \label{fig:heatmaps}
+\end{pfigure}
+\else
+\begin{widefigure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/fig_heatmaps.pdf}
+  \caption{Gradient$\times$input attribution maps averaged over 100 test strands at 8\% deletion. Row = output position,
+  column = aligned read position; darker = more attribution. Orange ticks: marker positions.}
+  \label{fig:heatmaps}
+\end{widefigure}
+\fi
 
 \subsection{The model depends on its markers}
 Scrambling the markers of a trained model changes nothing but the marker letters, yet recovery at 8\% falls sharply for
@@ -248,15 +304,9 @@ model ends up \emph{below} the marker-free model (38.8\%), so the fine-tuned mod
 and are misled when they are wrong. Scrambling the 32-nt end-block costs only 3.8 points ($p=0.003$): six marker
 nucleotides in the middle matter about three times more than 32 at the end.
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\columnwidth]{figures/fig_ablation.pdf}
-  \caption{Marker ablation at 8\% deletion: same model, same reads and noise, marker letters scrambled. Bold numbers:
-  drop in percentage points. Dashed line: marker-free model.}
-  \label{fig:ablation}
-\end{figure}
 
-\begin{table}[t]
+
+\begin{ptable}
   \centering
   \caption{Ablation drop at 8\% deletion and share of attribution on marker positions (data outputs only). Space =
   fraction of the strand occupied by markers; $\rho$ = gradient$\times$input share / space.}
@@ -275,7 +325,7 @@ nucleotides in the middle matter about three times more than 32 at the end.
     Middle 6-nt$\times$1 & 12.0 & 4.7 & 5.8 & 5.7 & 5.7 & 1.24 \\
     \hline
   \end{tabular}
-\end{table}
+\end{ptable}
 
 \subsection{Where the model looks}
 The attribution maps (Fig.~\ref{fig:heatmaps}) show a strong diagonal: each output position is computed mainly from the
@@ -291,32 +341,7 @@ GradientSHAP agree with gradient$\times$input within one percentage point for ev
 depend on the attribution method. Attributions show where the model looks; the ablation shows that this matters for the
 output.
 
-\begin{widefigure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figures/fig_heatmaps.pdf}
-  \caption{Gradient$\times$input attribution maps averaged over 100 test strands at 8\% deletion. Row = output position,
-  column = aligned read position; darker = more attribution. Orange ticks: marker positions.}
-  \label{fig:heatmaps}
-\end{widefigure}
 
-\ifextended
-\subsection{A worked example}
-Fig.~\ref{fig:example} shows one test strand at 8\% deletion for which the marker-free model fails and the middle-marker
-model succeeds. The strand contains the run \texttt{CAC GGGG AATT} at positions 51--61. Three of the ten reads lost one
-G of the run, so the reads disagree about where it starts. The marker-free model writes \texttt{C} in place of the first
-\texttt{G}, its only error in the strand, and the strand is lost. The middle-marker model, whose marker begins four
-nucleotides after the run, reconstructs every position. Among the first 300 test strands at 8\% deletion, 46 behave like
-this one; the three clearest cases picked automatically all show a single wrong nucleotide near the middle of the strand
-for the marker-free model. One example illustrates the mechanism; the statistics above establish it.
-\begin{widefigure}[t]
-  \centering
-  \includegraphics[width=\textwidth]{figures/fig_example.pdf}
-  \caption{One test strand at 8\% deletion (positions 41--76). Rows: true strand, the ten aligned reads (red dash =
-  deleted nucleotide, red letter = substitution, shading = gradient$\times$input) and the model output (red = wrong).
-  Orange: marker. Inserted nucleotides are omitted to keep columns aligned.}
-  \label{fig:example}
-\end{widefigure}
-\fi
 
 \section{Discussion}
 
@@ -349,3 +374,7 @@ show why: errors build up far from any anchor, fine-tuned models depend strongly
 markers for nearby positions. A single middle marker gives the best net data gain at low cost, and eight short markers
 give the most complete strands. Future work will test these designs on real sequencing data, combine them with outer
 codes, and design reconstruction models that use markers explicitly.
+
+\section*{Data and Code Availability}
+The dataset-generation scripts, fine-tuning and analysis code, and the per-strand predictions underlying all tables
+and figures are available from the authors on request.

@@ -2,13 +2,20 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx,amsmath,amssymb,cite,url}
-\usepackage[hidelinks]{hyperref}
-\newenvironment{widefigure}[1][t]{\begin{figure*}[#1]}{\end{figure*}}
+\usepackage{xcolor}
+\definecolor{linkblue}{HTML}{1F4E9C}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+\newenvironment{widefigure}[1][t]{\begin{figure*}[!t]}{\end{figure*}}
 \newenvironment{widetable}[1][t]{\begin{table*}[#1]}{\end{table*}}
 
+\newenvironment{pfigure}{\begin{figure}[t]}{\end{figure}}
+\newenvironment{ptable}{\begin{table}[t]}{\end{table}}
+\newcommand{\smallfig}{\columnwidth}
+\setcounter{dbltopnumber}{2}\renewcommand{\dbltopfraction}{0.9}\renewcommand{\topfraction}{0.9}\renewcommand{\textfraction}{0.1}\renewcommand{\dblfloatpagefraction}{0.8}
 \newif\ifextended
 \extendedtrue
 \begin{document}
+\setcounter{dbltopnumber}{3}\renewcommand{\dbltopfraction}{0.95}
 \title{Where to Put the Anchor: Synchronization Markers for Transformer-Based DNA Trace Reconstruction}
 
 \author{

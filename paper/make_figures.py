@@ -99,10 +99,10 @@ ax.barh(y + 0.19, v8, 0.36, color=BLUE, label="8% deletion")
 ax.barh(y - 0.19, v5, 0.36, color=GREY, label="5% deletion")
 ax.axvline(0, color=INK2, lw=0.8)
 ax.set_yticks(y, [names[r] for r in order], fontsize=6.8)
-ax.set_xlabel("Data recovered vs. no markers (%)")
+ax.set_xlabel("Change in data recovered (%)")
 ax.xaxis.grid(True, color=GRID, lw=0.5); ax.set_axisbelow(True)
-ax.legend(fontsize=6.5, loc="lower right")
-ax.set_title("(b) Net data recovered (markers cost space)", loc="left")
+ax.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+ax.set_title("(b) Net data recovered vs. no markers", loc="left")
 save(fig, "fig_recovery.pdf")
 
 
@@ -116,12 +116,12 @@ def load_err(fn):
 
 em, es = load_err("err_main.csv"), load_err("err_spacing.csv")
 pos = np.arange(1, 129)
-fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.2), sharey=True, gridspec_kw={"wspace": 0.08})
-panels = [(axs[0], "(a) Same 32 marker nt, different placement",
-           [("No markers", em["marker_free"], BLUE, "--"), ("4 × 8-nt, spread", em["marker_periodic"], ORANGE, "-"),
+fig, axs = plt.subplots(1, 2, figsize=(7.0, 2.35), sharey=True, gridspec_kw={"wspace": 0.12})
+panels = [(axs[0], "(a) Same markers, different placement",
+           [("No markers", em["marker_free"], BLUE, "--"), ("4 × 8-nt", em["marker_periodic"], ORANGE, "-"),
             ("End-block", em["marker_endblock"], AQUA, "-")], "marker_periodic"),
           (axs[1], "(b) One vs. eight 6-nt markers",
-           [("No markers", es["marker_free"], BLUE, "--"), ("1 × 6-nt, middle", es["marker_len06_n1"], ORANGE, "-"),
+           [("No markers", es["marker_free"], BLUE, "--"), ("1 × 6-nt", es["marker_len06_n1"], ORANGE, "-"),
             ("8 × 6-nt", es["marker_len06_n8"], AQUA, "-")], "marker_len06_n8")]
 for ax, title, ser, ref in panels:
     for i in np.where(mask(ref))[0]:
@@ -129,7 +129,7 @@ for ax, title, ser, ref in panels:
     for lab, yy, c, ls in ser:
         ax.plot(pos, yy, color=c, lw=1.3, ls=ls, label=lab)
     ax.set_title(title, loc="left"); ax.set_xlabel("Strand position")
-    ax.set_xlim(1, 128); ax.legend(fontsize=6.5, loc="upper right")
+    ax.set_xlim(1, 128); ax.legend(fontsize=6.3, loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=3, columnspacing=0.8, handlelength=1.4, handletextpad=0.4)
 axs[0].set_ylabel("Wrong output nt at 8% (%)")
 save(fig, "fig_errors.pdf")
 
@@ -145,15 +145,15 @@ for i, a in enumerate(abl):
 ax.axhline(38.8, color=INK2, lw=0.8, ls=(0, (4, 3)), label="no-marker model")
 ax.set_xticks(x, [a[0] for a in abl], fontsize=6.3)
 ax.set_ylabel("Strands fully recovered at 8% (%)", fontsize=7)
-ax.set_ylim(0, 85); ax.yaxis.grid(True, color=GRID, lw=0.5); ax.set_axisbelow(True)
-ax.legend(fontsize=6.2, loc="upper left", ncol=2)
+ax.set_ylim(0, 80); ax.yaxis.grid(True, color=GRID, lw=0.5); ax.set_axisbelow(True)
+ax.legend(fontsize=6.2, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, columnspacing=0.9, handlelength=1.4)
 save(fig, "fig_ablation.pdf")
 
 # ---------------- Fig 5: heatmaps ----------------
 hms = [("No markers", "hm_free.npy", None), ("End-block", "hm_endblock.npy", "marker_endblock"),
        ("4 × 8-nt", "hm_periodic.npy", "marker_periodic"), ("1 × 6-nt, middle", "hm_n1.npy", "marker_len06_n1"),
        ("8 × 6-nt", "hm_n8.npy", "marker_len06_n8")]
-fig, axs = plt.subplots(1, 5, figsize=(7.0, 1.75), gridspec_kw={"wspace": 0.3})
+fig, axs = plt.subplots(1, 5, figsize=(7.0, 1.75), gridspec_kw={"wspace": 0.5})
 for ax, (title, fn, arm) in zip(axs, hms):
     H = np.load(os.path.join(D, fn))
     ax.imshow(H, cmap="Blues", norm=PowerNorm(0.5, vmin=0, vmax=np.percentile(H, 99.7)))
@@ -165,7 +165,7 @@ for ax, (title, fn, arm) in zip(axs, hms):
     for s in ax.spines.values():
         s.set_visible(False)
 axs[0].set_ylabel("Output position", fontsize=7)
-fig.text(0.5, -0.04, "Aligned read position", ha="center", fontsize=7)
+fig.text(0.5, 0.06, "Aligned read position", ha="center", fontsize=7)
 save(fig, "fig_heatmaps.pdf")
 
 # ---------------- Table: all designs ----------------
@@ -202,9 +202,9 @@ print("figures and table written")
 # ---------------- Extra (IEEE) Fig: pipeline ----------------
 fig, ax = plt.subplots(figsize=(7.0, 1.25))
 ax.axis("off")
-boxes = [("Random\npayload", "#dbe7f7"), ("Insert\nmarkers", "#fbe0d4"), ("Simulate 10 reads\n(del 1–8%, ins/sub 1%)", "#eeeeea"),
+boxes = [("Random\npayload", "#dbe7f7"), ("Insert\nmarkers", "#fbe0d4"), ("Simulate\n10 noisy reads\n(del. 1–8%)", "#eeeeea"),
          ("DNAFormer\n(fine-tuned)", "#dbe7f7"), ("Remove\nmarkers", "#fbe0d4"), ("Score data nt\n+ XAI", "#eeeeea")]
-wbox, gap = 1.0, 0.22
+wbox, gap = 1.0, 0.3
 for i, (t, c) in enumerate(boxes):
     x0 = i * (wbox + gap)
     ax.add_patch(matplotlib.patches.FancyBboxPatch((x0, 0.1), wbox, 0.8, boxstyle="round,pad=0.02,rounding_size=0.08",
@@ -230,22 +230,56 @@ for ax, pts, xl, tt in [(axs[0], L, "Marker length (nt), 4 markers", "(a) Length
     ax.set_xticks(xs); ax.set_xlabel(xl, fontsize=6.8); ax.set_title(tt, loc="left", fontsize=7.5)
     ax.yaxis.grid(True, color=GRID, lw=0.5); ax.set_axisbelow(True); ax.tick_params(labelsize=6.5)
 axs[0].set_ylabel("Exact recovery at 8% (%)", fontsize=6.8)
-axs[0].text(4, 40.5, "no markers", fontsize=6, color=INK2)
+axs[0].set_ylim(34, 74)
+axs[1].text(8, 36.2, "no markers", fontsize=6, color=INK2, ha="right")
 save(fig, "fig_length_number.pdf")
 print("extra figures written")
 
-# ---------------- Short table for LNCS ----------------
-short = [r"\begin{tabular}{lrrrrrr}", r"\hline",
-         r"Design & Data nt & Exact 5\% & Exact 8\% [95\% CI] & $p$ (8\%) & $\Delta D$ 8\% & $\Delta D$ 5\% \\", r"\hline"]
-for name, run, mk, lay in rows:
+
+# ---------------- Final tables: designs (Methods) and results (Results) ----------------
+NAMES = {"marker_free": "No markers", "marker_endblock": "End-block (control)", "marker_periodic": "Spread 8-nt $\\times$4",
+         "marker_len04": "Spread 4-nt $\\times$4", "marker_len05": "Spread 5-nt $\\times$4", "marker_len06": "Spread 6-nt $\\times$4",
+         "marker_len07": "Spread 7-nt $\\times$4", "marker_len12": "Spread 12-nt $\\times$4", "marker_len06_n1": "Middle 6-nt $\\times$1",
+         "marker_len06_n2": "Spread 6-nt $\\times$2", "marker_len06_n8": "Spread 6-nt $\\times$8"}
+ORDER = ["marker_free", "marker_endblock", "marker_periodic", "marker_len04", "marker_len05", "marker_len06", "marker_len07",
+         "marker_len12", "marker_len06_n1", "marker_len06_n2", "marker_len06_n8"]
+LAY = {r[1]: (r[2], r[3]) for r in rows}
+des = [r"\begin{tabular}{lllrr}", r"\hline", r"Design & Marker & Layout (data + marker) & Data nt & Overhead \\", r"\hline"]
+for run in ORDER:
+    mk, lay = LAY[run]
+    dn = int(res[(run, 8)]["data_bases"])
+    des.append(r"%s & %s & %s & %d & %.1f\%% \\" % (NAMES[run], "--" if mk == "--" else r"\texttt{%s}" % mk, lay, dn,
+                                                   (128 - dn) / 128 * 100))
+des += [r"\hline", r"\end{tabular}"]
+open(os.path.join(HERE, "table_designs.tex"), "w").write("\n".join(des) + "\n")
+tab = [r"\begin{tabular}{lrrrrrrr}", r"\hline",
+       r"Design & Data nt & Exact 5\% & Exact 8\% [95\% CI] & $p$ (8\%) & NED 8\% & $\Delta D$ 8\% & $\Delta D$ 5\% \\", r"\hline"]
+for run in ORDER:
     r5, r8 = res[(run, 5)], res[(run, 8)]
     d8 = (float(r8["data_recovered_per_1000"]) / base8 - 1) * 100
     d5 = (float(r5["data_recovered_per_1000"]) / base5 - 1) * 100
-    nm = name if run == "marker_free" else "%s (%s)" % (name, lay)
-    short.append(r"%s & %d & %.1f & %.1f\,[%.1f, %.1f] & %s & %s & %s \\" % (
-        nm, int(r8["data_bases"]), float(r5["exact"]) * 100, float(r8["exact"]) * 100,
-        float(r8["exact_ci_low"]) * 100, float(r8["exact_ci_high"]) * 100, p8.get(run, "--"),
+    tab.append(r"%s & %d & %.1f & %.1f\,[%.1f, %.1f] & %s & %.4f & %s & %s \\" % (
+        NAMES[run], int(r8["data_bases"]), float(r5["exact"]) * 100, float(r8["exact"]) * 100,
+        float(r8["exact_ci_low"]) * 100, float(r8["exact_ci_high"]) * 100, p8.get(run, "--"), float(r8["ned"]),
         "--" if run == "marker_free" else "%+.1f" % d8, "--" if run == "marker_free" else "%+.1f" % d5))
-short += [r"\hline", r"\end{tabular}"]
-open(os.path.join(HERE, "table_results_short.tex"), "w").write(re.sub(r"& -(\d)", r"& $-$\1", "\n".join(short)) + "\n")
-print("short table written")
+tab += [r"\hline", r"\end{tabular}"]
+open(os.path.join(HERE, "table_results.tex"), "w").write(re.sub(r"& -(\d)", r"& $-$\1", "\n".join(tab)) + "\n")
+print("final tables written")
+
+# ---------------- Heatmaps, one-column version (IEEE) ----------------
+fig, axs = plt.subplots(2, 3, figsize=(3.45, 2.6), gridspec_kw={"wspace": 0.45, "hspace": 0.55})
+for ax, (title, fn, arm) in zip(axs.flat, hms):
+    H = np.load(os.path.join(D, fn))
+    ax.imshow(H, cmap="Blues", norm=PowerNorm(0.5, vmin=0, vmax=np.percentile(H, 99.7)))
+    if arm:
+        for i in np.where(mask(arm))[0]:
+            ax.plot([i, i], [-10, -3], color=ORANGE, lw=0.6, clip_on=False)
+    ax.set_ylim(127.5, -11); ax.set_title(title, fontsize=6.5, pad=4)
+    ax.set_xticks([0, 127], ["1", "128"], fontsize=5.5); ax.set_yticks([0, 127], ["1", "128"], fontsize=5.5)
+    for s_ in ax.spines.values():
+        s_.set_visible(False)
+ax = axs.flat[5]; ax.axis("off")
+ax.text(0.5, 0.62, "rows: output position", ha="center", fontsize=6, color=INK2, transform=ax.transAxes)
+ax.text(0.5, 0.42, "columns: aligned read\nposition", ha="center", va="top", fontsize=6, color=INK2, transform=ax.transAxes)
+save(fig, "fig_heatmaps_col.pdf")
+print("one-column heatmaps written")
