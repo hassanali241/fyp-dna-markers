@@ -16,5 +16,6 @@ IEEE-only parts are inside `\ifextended ... \fi` in `body.tex`.
 `python3 paper/make_figures.py` (figures + tables) and `python3 paper/draw_example.py` (worked example).
 Data in `paper/data/` comes from Google Drive `fyp_dna/results/stage5/`.
 
-## Still to fill in
-Author names, university, emails, supervisor (search for "Author One" and "[University]").
+## Authors
+Hassan Ali, Muhammad Haad, Mahek Kalani (equal contribution); supervisor Dr. Muhammad Ismail Mangrio;
+Department of Computer Science, Sukkur IBA University, Sukkur, Pakistan.
