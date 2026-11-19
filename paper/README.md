@@ -24,3 +24,8 @@ Department of Computer Science, Sukkur IBA University, Sukkur, Pakistan.
 - All 18 references verified against publisher/arXiv records (authors, title, venue, year, pages, DOI).
 - Citations, figure, table and section references are clickable (blue).
 - Figures and tables are numbered in the order the text first cites them.
+
+## Word versions
+`paper/word/paper_ieee.docx` and `paper/word/paper_lncs.docx` are generated from the same LaTeX sources by
+`python3 paper/make_word.py` (needs pandoc). They are single-column and meant for editing and comments; the PDFs
+from LaTeX remain the formatted versions for submission.
