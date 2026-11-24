@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>DNA storage video</title>
+<style>html,body{margin:0;background:#0b1020}canvas{display:block}</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const W = 1920, H = 1080, FPS = 30, DUR = 60;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const COL = {A: '#2fbf71', C: '#3b82f6', G: '#f2b705', T: '#e5484d'};
+const BG1 = '#0b1020', BG2 = '#131b33', INK = '#eef2ff', INK2 = '#a5b0d0', MK = '#b06cff';
+const F = 'Inter, "DejaVu Sans", sans-serif', MONO = '"DejaVu Sans Mono", monospace';
+
+// ---------- helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const seg = (t, a, b) => clamp((t - a) / (b - a));           // 0..1 progress of t in [a,b]
+const lerp = (a, b, p) => a + (b - a) * p;
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function text(s, x, y, size, color = INK, align = 'center', weight = 600, alpha = 1, font = F) {
+  ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${font}`;
+  ctx.textAlign = align; ctx.textBaseline = 'middle'; ctx.fillText(s, x, y); ctx.globalAlpha = 1; }
+function tile(x, y, s, L, alpha = 1, opt = {}) {
+  ctx.globalAlpha = alpha;
+  rr(x - s / 2, y - s / 2, s, s, s * 0.18); ctx.fillStyle = opt.fill || COL[L] || '#555'; ctx.fill();
+  if (opt.ring) { ctx.lineWidth = 3; ctx.strokeStyle = opt.ring; ctx.stroke(); }
+  ctx.fillStyle = opt.ink || '#fff'; ctx.font = `700 ${s * 0.55}px ${F}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(L, x, y + 1); ctx.globalAlpha = 1; }
+function caption(s, alpha, sub) {
+  if (alpha <= 0) return;
+  ctx.globalAlpha = alpha * 0.85; rr(160, 905, 1600, sub ? 130 : 96, 22); ctx.fillStyle = 'rgba(8,12,26,0.85)'; ctx.fill(); ctx.globalAlpha = 1;
+  text(s, 960, sub ? 950 : 953, 40, INK, 'center', 600, alpha);
+  if (sub) text(sub, 960, 1002, 27, INK2, 'center', 500, alpha);
+}
+function stepLabel(n, s, alpha) {
+  ctx.globalAlpha = alpha; rr(80, 60, 74, 74, 37); ctx.fillStyle = '#26315a'; ctx.fill(); ctx.globalAlpha = 1;
+  text(String(n), 117, 98, 36, INK, 'center', 700, alpha); text(s, 180, 98, 36, INK, 'left', 700, alpha);
+}
+function arrow(x1, y1, x2, y2, p, color = INK2, w = 5) {
+  if (p <= 0) return; const x = lerp(x1, x2, p), y = lerp(y1, y2, p);
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x, y); ctx.stroke();
+  if (p > 0.95) { const a = Math.atan2(y2 - y1, x2 - x1); ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - 22 * Math.cos(a - 0.45), y2 - 22 * Math.sin(a - 0.45)); ctx.lineTo(x2 - 22 * Math.cos(a + 0.45), y2 - 22 * Math.sin(a + 0.45)); ctx.fill(); }
+}
+function fileIcon(x, y, s, alpha, check) {
+  ctx.globalAlpha = alpha; const w = s * 0.78, h = s;
+  ctx.fillStyle = '#e8ecf8'; ctx.beginPath(); ctx.moveTo(x - w / 2, y - h / 2); ctx.lineTo(x + w / 2 - s * 0.22, y - h / 2);
+  ctx.lineTo(x + w / 2, y - h / 2 + s * 0.22); ctx.lineTo(x + w / 2, y + h / 2); ctx.lineTo(x - w / 2, y + h / 2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c7cfe6'; ctx.beginPath(); ctx.moveTo(x + w / 2 - s * 0.22, y - h / 2); ctx.lineTo(x + w / 2 - s * 0.22, y - h / 2 + s * 0.22);
+  ctx.lineTo(x + w / 2, y - h / 2 + s * 0.22); ctx.fill();
+  // little picture: sun + mountains
+  ctx.fillStyle = '#f2b705'; ctx.beginPath(); ctx.arc(x - w * 0.18, y - h * 0.08, s * 0.08, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3b82f6'; ctx.beginPath(); ctx.moveTo(x - w * 0.38, y + h * 0.3); ctx.lineTo(x - w * 0.1, y + h * 0.02);
+  ctx.lineTo(x + w * 0.08, y + h * 0.2); ctx.lineTo(x + w * 0.2, y + h * 0.08); ctx.lineTo(x + w * 0.38, y + h * 0.3); ctx.fill();
+  ctx.globalAlpha = 1;
+  if (check > 0) { ctx.globalAlpha = check; ctx.fillStyle = '#2fbf71'; ctx.beginPath(); ctx.arc(x + w * 0.45, y + h * 0.45, s * 0.17, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = s * 0.04; ctx.beginPath(); ctx.moveTo(x + w * 0.37, y + h * 0.45);
+    ctx.lineTo(x + w * 0.44, y + h * 0.52); ctx.lineTo(x + w * 0.55, y + h * 0.38); ctx.stroke(); ctx.globalAlpha = 1; }
+}
+function helix(cx, cy, len, amp, phase, letters, alpha, scale = 1) {
+  ctx.globalAlpha = alpha; const n = letters.length, step = len / n;
+  for (let i = 0; i < n; i++) {               // rungs
+    const x = cx - len / 2 + (i + 0.5) * step, a = phase + i * 0.55, y1 = cy + amp * Math.sin(a), y2 = cy - amp * Math.sin(a);
+    const depth = Math.cos(a); ctx.globalAlpha = alpha * (0.45 + 0.55 * Math.abs(depth));
+    ctx.strokeStyle = COL[letters[i]]; ctx.lineWidth = 6 * scale; ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, (y1 + y2) / 2); ctx.stroke();
+    const comp = {A: 'T', T: 'A', C: 'G', G: 'C'}[letters[i]]; ctx.strokeStyle = COL[comp]; ctx.beginPath(); ctx.moveTo(x, (y1 + y2) / 2); ctx.lineTo(x, y2); ctx.stroke();
+  }
+  for (const sgn of [1, -1]) {                // backbones
+    ctx.globalAlpha = alpha; ctx.strokeStyle = sgn > 0 ? '#dfe6ff' : '#8fa3e0'; ctx.lineWidth = 7 * scale; ctx.beginPath();
+    for (let k = 0; k <= 200; k++) { const x = cx - len / 2 + len * k / 200, a = phase + (k / 200) * n * 0.55 - 0.27;
+      const y = cy + sgn * amp * Math.sin(a + 0.27); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+function bg(t) {
+  const g = ctx.createRadialGradient(W * 0.5, H * 0.4, 100, W * 0.5, H * 0.5, 1200); g.addColorStop(0, BG2); g.addColorStop(1, BG1);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = 0.06; ctx.fillStyle = '#8fa3e0';            // drifting particles
+  for (let i = 0; i < 60; i++) { const x = (i * 337 + t * 12 * (1 + i % 3)) % W, y = (i * 191) % H; ctx.beginPath(); ctx.arc(x, y, 2 + i % 3, 0, 7); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+// deterministic pseudo-random
+function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+// ---------- data ----------
+const BITS = '0100100001101001001000000100010001001110010000010010000100100001';     // "Hi DNA!!"
+const MAP = {'00': 'A', '01': 'C', '10': 'G', '11': 'T'};
+const BASES = []; for (let i = 0; i < 32; i++) BASES.push(MAP[BITS.substr(2 * i, 2)]);
+const STRAND = 'CTAATTAGTTACTGCACGGGGAATTGGGAGATAGTTCTTCGCACGG'.split('');  // 46 shown
+const MARKER = 'CTGTCA'.split('');
+
+// ---------- scenes ----------
+function sTitle(t) {
+  const a = seg(t, 0, 1) * (1 - seg(t, 4.3, 5));
+  helix(960, 420, 1300, 70, t * 1.6, 'ACGTTGCAGTCAATGCGTACCGTAGTCA'.split(''), a * 0.9);
+  text('Storing digital data in DNA', 960, 620, 76, INK, 'center', 800, a);
+  text('and how synchronization markers help AI read it back', 960, 700, 38, INK2, 'center', 500, a);
+  text('Final Year Project · Sukkur IBA University', 960, 790, 28, '#7f8bb0', 'center', 500, a);
+}
+function sBits(t) {
+  const a = seg(t, 0, .6) * (1 - seg(t, 6.4, 7));
+  stepLabel(1, 'Every file is just 0s and 1s', a);
+  fileIcon(330, 470, 260, a * (1 - 0.0), 0); text('photo.jpg', 330, 650, 30, INK2, 'center', 500, a);
+  arrow(520, 470, 700, 470, ease(seg(t, .8, 1.6)) * a > 0 ? ease(seg(t, .8, 1.6)) : 0);
+  const shown = Math.floor(BITS.length * ease(seg(t, 1.6, 5)));
+  for (let i = 0; i < shown; i++) {
+    const r = Math.floor(i / 16), c = i % 16;
+    text(BITS[i], 760 + c * 64 + Math.floor(c / 8) * 28, 360 + r * 74, 50, BITS[i] === '1' ? '#dfe6ff' : '#7f8bb0', 'center', 700, a, MONO);
+  }
+  caption('A computer stores every file as a long sequence of bits', a * seg(t, 2, 2.8));
+}
+function sEncode(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 7.4, 8));
+  stepLabel(2, 'Encode: two bits become one DNA letter', a);
+  const keys = ['00', '01', '10', '11'];          // legend
+  keys.forEach((k, i) => { const x = 560 + i * 230, y = 230, ap = a * seg(t, .3 + i * .2, .8 + i * .2);
+    text(k, x - 45, y, 44, INK, 'center', 700, ap, MONO); text('→', x + 5, y, 40, INK2, 'center', 500, ap); tile(x + 60, y, 64, MAP[k], ap); });
+  const p = ease(seg(t, 2, 5.5));
+  for (let i = 0; i < 16; i++) {                    // first 32 bits -> 16 bases (two rows of 8)
+    const r = Math.floor(i / 8), c = i % 8, bx = 400 + c * 150, by = 460 + r * 170;
+    const pair = BITS.substr(2 * i, 2), tx = 300 + i * 82, ty = 760;
+    const local = clamp(p * 16 - i * 0.6);
+    if (local < 1) text(pair, lerp(bx, tx, ease(local)), lerp(by, ty, ease(local)), 50, '#dfe6ff', 'center', 700, a * (1 - local), MONO);
+    if (local > 0) tile(lerp(bx, tx, ease(local)), lerp(by, ty, ease(local)), lerp(30, 70, local), BASES[i], a * clamp(local * 1.5));
+  }
+  caption('A, C, G and T are the four letters (bases) of DNA', a * seg(t, 5.6, 6.2), 'Real systems also add error-correcting codes; this mapping is simplified');
+}
+function sStrands(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 6.4, 7));
+  stepLabel(3, 'Split into short strands', a);
+  const R = rng(7), rows = 6;
+  for (let r = 0; r < rows; r++) {
+    const ap = a * ease(seg(t, .4 + r * .45, 1.2 + r * .45)), y = 300 + r * 92, x0 = lerp(-300, 250, ap);
+    for (let i = 0; i < 40; i++) { const L = 'ACGT'[Math.floor(R() * 4)]; tile(x0 + i * 36, y, 32, L, ap); }
+    text('strand ' + (r + 1), x0 + 1480, y, 28, INK2, 'left', 600, ap);
+  }
+  caption('Data is cut into many short strands, each 128 letters long', a * seg(t, 1.5, 2.2), 'Each strand also gets an address so the file can be put back in order');
+}
+function sStore(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 5.4, 6));
+  stepLabel(4, 'Synthesize and store', a);
+  // tube
+  const tx = 1440, ty = 520;
+  ctx.globalAlpha = a; ctx.strokeStyle = '#cfd8f5'; ctx.lineWidth = 6; ctx.beginPath();
+  ctx.moveTo(tx - 90, ty - 260); ctx.lineTo(tx - 90, ty + 170); ctx.arc(tx, ty + 170, 90, Math.PI, 0, true); ctx.lineTo(tx + 90, ty - 260); ctx.stroke();
+  const fill = ease(seg(t, 2.2, 4.5));
+  ctx.fillStyle = 'rgba(59,130,246,0.35)'; ctx.beginPath(); const lvl = ty + 170 - fill * 200;
+  ctx.moveTo(tx - 86, lvl); ctx.lineTo(tx - 86, ty + 170); ctx.arc(tx, ty + 170, 86, Math.PI, 0, true); ctx.lineTo(tx + 86, lvl); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1;
+  for (let k = 0; k < 3; k++) {                    // helices flying into the tube
+    const p = ease(seg(t, .5 + k * .6, 2.6 + k * .6)), x = lerp(560, tx, p), y = lerp(330 + k * 170, ty + 120, p), s = lerp(1, .18, p);
+    helix(x, y, 700 * s, 55 * s, t * 2 + k, 'ACGTGCATTGCAGT'.split(''), a * (1 - seg(p, .92, 1)), s);
+  }
+  text('DNA', tx, ty + 200, 34, INK, 'center', 700, a * fill);
+  caption('Each strand is synthesized as a real DNA molecule and stored', a * seg(t, .8, 1.4), 'DNA is extremely dense and can last for centuries when kept cool and dry');
+}
+function sSeq(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 8.4, 9));
+  stepLabel(5, 'Read it back with a sequencer', a);
+  // sequencer box
+  rr(120, 360, 300, 230, 26); ctx.globalAlpha = a; ctx.fillStyle = '#1e2747'; ctx.fill(); ctx.strokeStyle = '#3b4a80'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.fillStyle = '#2fbf71'; ctx.globalAlpha = a * (0.5 + 0.5 * Math.sin(t * 8)); ctx.beginPath(); ctx.arc(370, 395, 9, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+  text('Sequencer', 270, 475, 36, INK, 'center', 700, a);
+  const ref = STRAND.slice(0, 26);
+  // reference
+  text('true', 540, 250, 26, INK2, 'right', 600, a);
+  ref.forEach((L, i) => tile(580 + i * 40, 250, 35, L, a * 0.9));
+  // reads with errors
+  const reads = [
+    {type: 'deletion', at: 9}, {type: 'none'}, {type: 'insertion', at: 15, L: 'G'}, {type: 'substitution', at: 6, L: 'C'}, {type: 'none'}];
+  reads.forEach((rd, r) => {
+    const y = 340 + r * 92, ap = a * ease(seg(t, .6 + r * .35, 1.2 + r * .35));
+    text('read ' + (r + 1), 540, y, 26, INK2, 'right', 600, ap);
+    let seq = ref.map(L => ({L, kind: 'ok'}));
+    const eP = ease(seg(t, 3 + r * .2, 4.5 + r * .2));
+    if (rd.type === 'deletion') { seq = seq.slice(0, rd.at).concat(seq.slice(rd.at + 1)); }
+    if (rd.type === 'insertion') seq.splice(rd.at, 0, {L: rd.L, kind: 'ins'});
+    if (rd.type === 'substitution') seq[rd.at] = {L: rd.L, kind: 'sub'};
+    seq.slice(0, 26).forEach((b, i) => {
+      let x = 580 + i * 40;
+      if (rd.type === 'deletion' && i >= rd.at) x = lerp(580 + (i + 1) * 40, x, eP);   // letters slide left
+      const ring = (b.kind === 'ins' && eP > .3) ? '#2fbf71' : (b.kind === 'sub' && eP > .3) ? '#f2b705' : null;
+      tile(x, y, 35, b.L, ap * (b.kind === 'ins' ? eP : 1), {ring});
+    });
+    if (rd.type === 'deletion') { const x = 580 + rd.at * 40 - 20; ctx.globalAlpha = ap * eP; ctx.strokeStyle = '#e5484d'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(x, y - 26); ctx.lineTo(x, y + 26); ctx.stroke(); ctx.globalAlpha = 1;
+      text('deletion (shift)', 580 + 26 * 40 + 20, y, 26, '#ff8a8d', 'left', 600, ap * eP); }
+    if (rd.type === 'insertion') text('insertion', 580 + 26 * 40 + 20, y, 26, '#7ee2a8', 'left', 600, ap * eP);
+    if (rd.type === 'substitution') text('substitution', 580 + 26 * 40 + 20, y, 26, '#ffd76a', 'left', 600, ap * eP);
+  });
+  caption('Each strand is read about 10 times, and every read has errors', a * seg(t, 1, 1.6), 'Deletions are the hardest: one missing letter shifts the rest of the read');
+}
+function sAI(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 6.4, 7));
+  stepLabel(6, 'AI rebuilds the strand', a);
+  const R = rng(11);
+  for (let r = 0; r < 6; r++) { const y = 300 + r * 46, ap = a * ease(seg(t, .2 + r * .1, .8 + r * .1));
+    for (let i = 0; i < 16; i++) { const L = STRAND[(i + (R() < 0.15 ? 1 : 0)) % STRAND.length]; tile(200 + i * 28, y, 24, L, ap * 0.9); } }
+  text('10 noisy reads', 410, 590, 28, INK2, 'center', 600, a);
+  arrow(660, 410, 790, 410, ease(seg(t, 1, 1.6)));
+  rr(810, 320, 300, 180, 26); ctx.globalAlpha = a; ctx.fillStyle = '#2a2f6b'; ctx.fill(); ctx.strokeStyle = '#6d7cff'; ctx.lineWidth = 4; ctx.stroke(); ctx.globalAlpha = 1;
+  text('DNAFormer', 960, 395, 40, INK, 'center', 800, a); text('transformer AI model', 960, 440, 24, INK2, 'center', 500, a);
+  arrow(1130, 410, 1260, 410, ease(seg(t, 1.8, 2.4)));
+  // error mountain chart
+  const cx = 1290, cy = 520, cw = 520, ch = 230, p = ease(seg(t, 2.4, 4.5));
+  ctx.globalAlpha = a; ctx.strokeStyle = '#3b4a80'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy - ch); ctx.lineTo(cx, cy); ctx.lineTo(cx + cw, cy); ctx.stroke();
+  ctx.strokeStyle = '#e5484d'; ctx.lineWidth = 5; ctx.beginPath();
+  for (let k = 0; k <= 100 * p; k++) { const x = cx + cw * k / 100, z = (k - 50) / 18, y = cy - ch * 0.9 * Math.exp(-z * z); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  text('errors along the strand', cx + cw / 2, cy + 40, 26, INK2, 'center', 600, a);
+  text('start', cx, cy + 74, 22, INK2, 'center', 500, a); text('end', cx + cw, cy + 74, 22, INK2, 'center', 500, a);
+  text('lost in the middle', cx + cw / 2, cy - ch - 20, 28, '#ff8a8d', 'center', 700, a * seg(t, 4, 4.6));
+  caption('With heavy deletions, the AI loses track of position in the middle of the strand', a * seg(t, 1, 1.6),
+    'At 8% deletion it recovers only 38.8% of strands without errors');
+}
+function sMarkers(t) {
+  const a = seg(t, 0, .5) * (1 - seg(t, 6.4, 7));
+  stepLabel(7, 'Our idea: synchronization markers', a);
+  // strand with a marker inserted in the middle
+  const p = ease(seg(t, .5, 2));
+  const left = STRAND.slice(0, 14), right = STRAND.slice(14, 28);
+  left.forEach((L, i) => tile(200 + i * 46, 280, 40, L, a));
+  right.forEach((L, i) => tile(200 + (i + 14) * 46 + p * 6 * 46, 280, 40, L, a));
+  MARKER.forEach((L, i) => { const x = 200 + (14 + i) * 46, ap = a * clamp(p * 1.4 - .2);
+    tile(x, lerp(180, 280, p), 40, L, ap, {fill: MK}); });
+  ctx.globalAlpha = a * p; ctx.strokeStyle = MK; ctx.lineWidth = 3; rr(200 + 14 * 46 - 26, 250, 6 * 46 + 6, 60, 12); ctx.stroke(); ctx.globalAlpha = 1;
+  text('known marker CTGTCA', 200 + 17 * 46, 345, 26, '#d4b0ff', 'center', 700, a * p);
+  // chart: error mountain flattens
+  const cx = 300, cy = 690, cw = 620, ch = 230, q = ease(seg(t, 2.2, 4));
+  ctx.globalAlpha = a; ctx.strokeStyle = '#3b4a80'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy - ch); ctx.lineTo(cx, cy); ctx.lineTo(cx + cw, cy); ctx.stroke();
+  ctx.strokeStyle = 'rgba(229,72,77,0.45)'; ctx.lineWidth = 4; ctx.setLineDash([10, 8]); ctx.beginPath();
+  for (let k = 0; k <= 100; k++) { const x = cx + cw * k / 100, z = (k - 50) / 18, y = cy - ch * 0.9 * Math.exp(-z * z); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.globalAlpha = a * clamp(q * 3); ctx.strokeStyle = '#2fbf71'; ctx.lineWidth = 5; ctx.beginPath();
+  for (let k = 0; k <= 100; k++) { const x = cx + cw * k / 100, ph = (k % 12.5) / 12.5, y = cy - ch * lerp(0.9 * Math.exp(-Math.pow((k - 50) / 18, 2)), 0.28 * ph * Math.exp(-Math.pow((k - 50) / 40, 2)), q); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  text('without markers', cx + cw - 10, cy - ch + 10, 24, '#ff8a8d', 'right', 600, a);
+  text('with 8 markers', cx + cw - 10, cy - ch + 46, 24, '#7ee2a8', 'right', 600, a * q);
+  text('errors drop right after each marker', cx + cw / 2, cy + 40, 26, INK2, 'center', 600, a * q);
+  // result numbers
+  const rp = ease(seg(t, 3.6, 5));
+  text('Strands fully recovered at 8% deletion', 1440, 470, 30, INK2, 'center', 600, a * rp);
+  text((38.8 + (69.6 - 38.8) * rp).toFixed(1) + '%', 1440, 560, 110, '#7ee2a8', 'center', 800, a * rp);
+  text('was 38.8% with no markers', 1440, 640, 28, INK2, 'center', 500, a * rp);
+  text('1 marker in the middle: +12.5% more data stored', 1440, 715, 28, '#d4b0ff', 'center', 600, a * seg(t, 4.6, 5.2));
+  caption('A short known pattern inside the strand gives the AI a "you are here" sign', a * seg(t, .8, 1.4),
+    'Scrambling the markers makes recovery collapse, so the model really uses them');
+}
+function sBack(t) {
+  const a = seg(t, 0, .5);
+  const fade = 1 - seg(t, 2.2, 2.8);
+  stepLabel(8, 'Decode and get the file back', a * fade);
+  BASES.slice(0, 10).forEach((L, i) => tile(330 + i * 60, 430, 52, L, a * fade));
+  arrow(960, 430, 1100, 430, ease(seg(t, .3, .9)) * fade, INK2);
+  fileIcon(1330, 430, 240, a * fade, seg(t, .9, 1.4) * fade);
+  text('photo.jpg restored', 1330, 600, 30, INK2, 'center', 600, a * fade);
+  const e = seg(t, 2.6, 3.2);
+  helix(960, 330, 1200, 60, t * 1.6, 'ACGTTGCAGTCAATGCGTACCGTAGT'.split(''), e * 0.8);
+  text('Markers in the right place help AI read DNA', 960, 520, 60, INK, 'center', 800, e);
+  text('Hassan Ali · Muhammad Haad · Mahek Kalani', 960, 620, 34, INK2, 'center', 600, e);
+  text('Supervisor: Dr. Muhammad Ismail Mangrio · Sukkur IBA University', 960, 675, 30, '#7f8bb0', 'center', 500, e);
+}
+const SCENES = [[0, 5, sTitle], [5, 12, sBits], [12, 20, sEncode], [20, 27, sStrands], [27, 33, sStore],
+                [33, 42, sSeq], [42, 49, sAI], [49, 56, sMarkers], [56, 60, sBack]];
+window.render = function (t) {
+  bg(t);
+  for (const [a, b, f] of SCENES) if (t >= a && t < b + 0.001) f(t - a);
+  // progress bar
+  ctx.fillStyle = '#26315a'; ctx.fillRect(0, H - 8, W, 8); ctx.fillStyle = '#6d7cff'; ctx.fillRect(0, H - 8, W * t / DUR, 8);
+};
+window.FPS = FPS; window.DUR = DUR;
+render(0);
+</script></body></html>
